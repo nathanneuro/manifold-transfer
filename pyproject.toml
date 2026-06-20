@@ -1,0 +1,29 @@
+[project]
+name = "manifold-transfer"
+version = "0.0.1"
+description = "Cross-model manifold transfer, auditing, and repair, built on top of gamfit"
+requires-python = ">=3.10"
+dependencies = [
+  "gamfit",
+  "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["manifold_transfer"]
+
+# gamfit is a local, maturin-built package living in the sibling gam checkout.
+# uv builds/installs it editable from there; adjust the path if your layout
+# differs.
+[tool.uv.sources]
+gamfit = { path = "../gam", editable = true }
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
+testpaths = ["tests"]
