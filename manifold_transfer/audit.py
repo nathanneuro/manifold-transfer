@@ -432,5 +432,94 @@ def verify_repair(
         parent_defect,
         threshold,
         "causal-steering check (steer orders vs. linear teleports) is not verified "
-        "here; run it on a live model before accepting the repair",
+        "here; run causal_steering_check on a live fit before accepting the repair",
+    )
+
+
+# ── §5 / §6.3 causal leg: is the manifold causally load-bearing? ─────────────
+
+
+@dataclass
+class SteeringVerdict:
+    """Whether a manifold's curved geometry actually carries causal behavior
+    (notes §5 risk flag; the third leg of the §6.3 repair oracle)."""
+
+    path_off_norm: float  # max off-manifold norm along the stepped (on-manifold) path
+    chord_off_norm: float  # off-manifold norm of the single teleport chord
+    off_norm_ratio: float  # chord / path: how much the chord teleports off the manifold
+    manifold_load_bearing: bool
+    path_dose_nats: float | None  # summed KL dose along the path (None under a Euclidean metric)
+    chord_dose_nats: float | None
+    metric_provenance: str
+    note: str
+
+
+def causal_steering_check(
+    fit: Any,
+    atom_k: int,
+    t_from: Any,
+    t_to: Any,
+    *,
+    n_steps: int = 8,
+    ratio_threshold: float = 10.0,
+) -> SteeringVerdict:
+    """The causal-use test the notes demand: a real manifold is *load-bearing* —
+    moving along it in small geodesic steps stays on-manifold (ordered
+    transitions), while the straight chord across it teleports off where it
+    curves. A shape the model ignores shows no such gap.
+
+    Duck-types on ``fit.steer(atom_k, t_from, t_to)`` — works with a `gamfit`
+    ``ManifoldSAE`` fit (and any object exposing the same plan dict:
+    ``off_manifold_norm``, ``predicted_nats``, ``metric_provenance``). The stepped
+    path's max ``off_manifold_norm`` is compared to the single-chord
+    ``off_manifold_norm``; the manifold is load-bearing when the chord exceeds the
+    path by ``ratio_threshold``. The behavioral KL dose (``predicted_nats``) is
+    summed along the path when the fit installed an output-Fisher metric, else
+    ``None`` (geometry-only).
+
+    This is the leg :func:`verify_repair` leaves to the caller: a repaired atom
+    should be load-bearing here, and linear steering across it should teleport.
+    """
+    t_from = np.asarray(t_from, dtype=np.float64).reshape(-1)
+    t_to = np.asarray(t_to, dtype=np.float64).reshape(-1)
+    if n_steps < 1:
+        raise ValueError("n_steps must be >= 1")
+
+    alphas = np.linspace(0.0, 1.0, n_steps + 1)
+    waypoints = [(1.0 - a) * t_from + a * t_to for a in alphas]
+
+    step_off: list[float] = []
+    step_dose: list[float | None] = []
+    provenance = "Euclidean"
+    for i in range(n_steps):
+        plan = fit.steer(atom_k, waypoints[i], waypoints[i + 1])
+        step_off.append(float(plan["off_manifold_norm"]))
+        dose = plan.get("predicted_nats")
+        step_dose.append(None if dose is None else float(dose))
+        provenance = str(plan.get("metric_provenance", provenance))
+
+    chord = fit.steer(atom_k, t_from, t_to)
+    chord_off = float(chord["off_manifold_norm"])
+    path_off = max(step_off)
+    ratio = chord_off / (path_off + 1e-12)
+    load_bearing = ratio >= ratio_threshold
+
+    path_dose = None if any(d is None for d in step_dose) else float(sum(step_dose))
+    chord_dose_raw = chord.get("predicted_nats")
+    chord_dose = None if chord_dose_raw is None else float(chord_dose_raw)
+    note = (
+        "Euclidean metric: geometry (off-manifold) only; supply fisher_factors at "
+        "fit time for the behavioral KL dose"
+        if path_dose is None
+        else "OutputFisher metric: behavioral KL dose reported"
+    )
+    return SteeringVerdict(
+        path_off,
+        chord_off,
+        ratio,
+        load_bearing,
+        path_dose,
+        chord_dose,
+        provenance,
+        note,
     )
