@@ -37,7 +37,7 @@ only when forced**, the way `invert` was.
 |---|---|---|
 | `manifold_transfer.transport_law` | §2/§3 | implemented — `g(predictor)→spacing` laws and `g_B ∘ g_A⁻¹` |
 | `manifold_transfer.discovery` | §1 | not implemented (topology proposal: mutual-kNN / intrinsic dim) |
-| `manifold_transfer.audit` | §6 | not implemented (distillation provenance / interference / seam maps) |
+| `manifold_transfer.audit` | §6 | implemented — single-teacher integrity map + hybrid provenance (seam/spatial interference + §6.3 repair pending) |
 
 ## Develop
 
