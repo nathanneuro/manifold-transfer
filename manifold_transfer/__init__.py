@@ -10,9 +10,15 @@ from __future__ import annotations
 from .audit import (
     ConceptIntegrity,
     ConceptProvenance,
+    RepairAction,
+    RepairVerdict,
+    SeamMap,
     integrity_map,
     provenance_map,
+    repair_plan,
     repair_targets,
+    seam_map,
+    verify_repair,
 )
 from .transport_law import TransportLaw, fit_spacing_law
 
@@ -22,6 +28,12 @@ __all__ = [
     "integrity_map",
     "provenance_map",
     "repair_targets",
+    "seam_map",
+    "repair_plan",
+    "verify_repair",
     "ConceptIntegrity",
     "ConceptProvenance",
+    "SeamMap",
+    "RepairAction",
+    "RepairVerdict",
 ]

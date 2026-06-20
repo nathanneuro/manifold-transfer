@@ -175,3 +175,262 @@ def provenance_map(
 def repair_targets(integrity: Mapping[str, ConceptIntegrity]) -> list[str]:
     """Names of concepts flagged for repair by :func:`integrity_map`."""
     return [name for name, rec in integrity.items() if rec.is_repair_target]
+
+
+# ── §6.2 seams: spatial parent hand-off / interference ──────────────────────
+
+
+def _route_distortion_field(
+    parent_coords: Any, student_coords: Any, topology: str, n_grid: int
+) -> tuple[np.ndarray, np.ndarray] | None:
+    """Local isometric distortion `(|h'|-1)²` of the parent→student transport,
+    as a function of the *student* coordinate. ``None`` if the route folds
+    (topology broken), since then it has no faithful local geometry to compare.
+
+    Returns ``(s, distortion)`` sorted by ascending student coordinate `s`.
+    """
+    h = gamfit.fit_transport(
+        _as_1d("parent_coords", parent_coords),
+        _as_1d("student_coords", student_coords),
+        topology,
+        topology,
+    )
+    if not h.topology_preserved:
+        return None
+    pc = _as_1d("parent_coords", parent_coords)
+    t = np.linspace(float(pc.min()), float(pc.max()), n_grid)
+    s = np.asarray(h.eval(t), dtype=float)
+    distortion = (np.abs(np.asarray(h.derivative(t), dtype=float)) - 1.0) ** 2
+    if s[0] > s[-1]:  # keep s ascending for downstream interpolation
+        s, distortion = s[::-1], distortion[::-1]
+    return s, distortion
+
+
+@dataclass
+class SeamMap:
+    """Spatial hand-off between parents across a concept's student domain."""
+
+    grid: np.ndarray  # student coordinate grid (ascending)
+    local_distortion: dict[str, np.ndarray | None]  # per parent, on `grid` (None if folded)
+    best_parent: np.ndarray  # per grid point, the locally least-distorted parent
+    min_distortion: np.ndarray  # per grid point, distortion of the best parent
+    # each seam: {"location", "from", "to", "severity"} — severity is the
+    # min-distortion at the crossing (low = sharp clean hand-off, high = a
+    # degraded transition zone belonging to neither parent: interference).
+    seams: list[dict[str, Any]]
+
+
+def seam_map(
+    concept: Mapping[str, Any],
+    *,
+    topology: str = "interval",
+    n_grid: int = 256,
+) -> SeamMap:
+    """§6.2 — locate the *spatial* seams where a hybrid distill hands off between
+    parents, and where the hand-off degrades (interference).
+
+    ``concept`` has ``"student"`` coordinates and ``"teachers"`` (parent name →
+    coordinates). For each parent the local isometric distortion of its
+    student-side transport is computed across the shared student domain; the
+    locally least-distorted parent is the "owner" at each point. A seam is a
+    point where ownership switches; its ``severity`` is the min distortion there
+    — a clean hand-off has low severity, a degraded transition zone (high
+    severity on both sides) is the interference the aggregate provenance label
+    cannot localize.
+    """
+    if topology != "interval":
+        raise NotImplementedError(
+            "seam_map currently supports interval topology only (periodic seams "
+            "need wrap-aware ownership handling)"
+        )
+    teachers = concept["teachers"]
+    if len(teachers) < 2:
+        raise ValueError("seam analysis needs at least two teachers")
+    student = concept["student"]
+
+    fields = {
+        parent: _route_distortion_field(coords, student, topology, n_grid)
+        for parent, coords in teachers.items()
+    }
+    available = {p: f for p, f in fields.items() if f is not None}
+    if len(available) < 2:
+        raise ValueError(
+            "fewer than two parents preserve topology; no seam to locate "
+            "(this is whole-concept interference — see provenance_map)"
+        )
+
+    lo = max(float(f[0][0]) for f in available.values())
+    hi = min(float(f[0][-1]) for f in available.values())
+    if not hi > lo:
+        raise ValueError("parents' student-coordinate ranges do not overlap")
+    grid = np.linspace(lo, hi, n_grid)
+
+    local = {p: np.interp(grid, f[0], f[1]) for p, f in available.items()}
+    avail_names = list(available)
+    stack = np.vstack([local[p] for p in avail_names])  # (n_avail, n_grid)
+    best_idx = np.argmin(stack, axis=0)
+    best_parent = np.array([avail_names[i] for i in best_idx])
+    min_distortion = stack.min(axis=0)
+
+    seams: list[dict[str, Any]] = []
+    for i in range(1, grid.size):
+        if best_parent[i] != best_parent[i - 1]:
+            seams.append(
+                {
+                    "location": float(grid[i]),
+                    "from": str(best_parent[i - 1]),
+                    "to": str(best_parent[i]),
+                    "severity": float(min_distortion[i]),
+                }
+            )
+
+    local_full: dict[str, np.ndarray | None] = {
+        p: (local[p] if p in local else None) for p in teachers
+    }
+    return SeamMap(grid, local_full, best_parent, min_distortion, seams)
+
+
+# ── §6.3 repair: targeting + verification oracle ────────────────────────────
+
+
+@dataclass
+class RepairAction:
+    """Recommended repair for one concept (composes integrity + provenance)."""
+
+    name: str
+    # "none" | "verify_causal" | "distill_from_parent" | "disentangle"
+    action: str
+    source_parent: str | None
+    rationale: str
+
+
+def _least_distorted_parent(prov: ConceptProvenance) -> str | None:
+    finite = {p: d for p, d in prov.defects.items() if d is not None}
+    return min(finite, key=finite.get) if finite else None
+
+
+def repair_plan(
+    integrity: Mapping[str, ConceptIntegrity],
+    provenance: Mapping[str, ConceptProvenance] | None = None,
+) -> dict[str, RepairAction]:
+    """§6.3 — turn the integrity (and optional provenance) maps into per-concept
+    repair actions. Only pay for the case a concept is in:
+
+    * ``preserved`` → ``none`` (healthy compression, leave alone).
+    * ``warped_beyond_baseline`` → ``verify_causal`` — topology intact, so repair
+      only if causal steering shows the warp mis-orders behavior.
+    * ``topology_broken`` with a clean parent → ``distill_from_parent`` from the
+      least-distorted parent (the provenance map says which).
+    * ``topology_broken`` matching neither parent → ``disentangle`` (separate the
+      parents' versions into distinct regions; the hardest, hybrid-only repair).
+    """
+    plan: dict[str, RepairAction] = {}
+    for name, rec in integrity.items():
+        prov = provenance.get(name) if provenance else None
+        if rec.classification == "preserved":
+            plan[name] = RepairAction(
+                name, "none", None, "within the distill's baseline distortion"
+            )
+        elif rec.classification == "warped_beyond_baseline":
+            plan[name] = RepairAction(
+                name,
+                "verify_causal",
+                None,
+                "topology intact but distortion exceeds baseline; repair only if "
+                "causal steering shows mis-ordered behavior",
+            )
+        else:  # topology_broken
+            if prov is not None and prov.provenance == "neither":
+                plan[name] = RepairAction(
+                    name,
+                    "disentangle",
+                    None,
+                    "collapsed and matches neither parent (interference); separate "
+                    "the parents' versions into distinct manifold regions",
+                )
+            elif prov is not None:
+                source = (
+                    _least_distorted_parent(prov)
+                    if prov.provenance == "blend"
+                    else prov.provenance
+                )
+                plan[name] = RepairAction(
+                    name,
+                    "distill_from_parent",
+                    source,
+                    f"collapsed; re-distill the geometry from the cleanest parent "
+                    f"{source!r}",
+                )
+            else:
+                plan[name] = RepairAction(
+                    name,
+                    "distill_from_parent",
+                    None,
+                    "collapsed; re-distill from a teacher (no provenance supplied "
+                    "to pick which)",
+                )
+    return plan
+
+
+@dataclass
+class RepairVerdict:
+    """Geometry-side verification of a proposed repair (notes §6.3 oracle)."""
+
+    transport_matches_parent: bool
+    known_good_undisturbed: bool
+    geometry_ok: bool
+    parent_defect: float
+    baseline_threshold: float
+    note: str
+
+
+def verify_repair(
+    repaired_student: Any,
+    parent_coords: Any,
+    *,
+    baseline_concepts: Mapping[str, tuple[Any, Any]],
+    topology: str = "interval",
+    n_sigma: float = 3.0,
+) -> RepairVerdict:
+    """§6.3 — verify a proposed repair on the geometry side: the repaired student
+    must transport-match the authoritative parent within the distill's baseline
+    distortion, and the known-good concepts must still preserve topology
+    (undisturbed). ``baseline_concepts`` maps name → ``(teacher, student)`` of the
+    known-good concepts, used both to set the baseline threshold and to check
+    they survived the repair.
+
+    The third leg of the notes' three-way oracle — the causal steering test
+    (manifold steering should order, linear should teleport) — needs a live model
+    and is **not** checked here; it remains the caller's responsibility.
+    """
+    base_defects: list[float] = []
+    known_good_undisturbed = True
+    for _name, (teacher, student) in baseline_concepts.items():
+        defect, preserved = _transport_defect(teacher, student, topology)
+        if preserved:
+            base_defects.append(defect)
+        else:
+            known_good_undisturbed = False
+    base = np.array(base_defects, dtype=float)
+    if base.size < 2:
+        raise ValueError(
+            "need at least 2 topology-preserving baseline concepts to threshold"
+        )
+    threshold = max(
+        float(base.mean() + n_sigma * base.std(ddof=1)), float(base.max())
+    )
+
+    parent_defect, preserved = _transport_defect(
+        parent_coords, repaired_student, topology
+    )
+    transport_matches_parent = preserved and parent_defect <= threshold
+    geometry_ok = transport_matches_parent and known_good_undisturbed
+    return RepairVerdict(
+        transport_matches_parent,
+        known_good_undisturbed,
+        geometry_ok,
+        parent_defect,
+        threshold,
+        "causal-steering check (steer orders vs. linear teleports) is not verified "
+        "here; run it on a live model before accepting the repair",
+    )
