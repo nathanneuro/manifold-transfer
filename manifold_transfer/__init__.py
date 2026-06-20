@@ -22,11 +22,21 @@ from .audit import (
     seam_map,
     verify_repair,
 )
+from .discovery import (
+    TopologyProposal,
+    intrinsic_dimension,
+    mutual_knn_graph,
+    propose_topology,
+)
 from .transport_law import TransportLaw, fit_spacing_law
 
 __all__ = [
     "TransportLaw",
     "fit_spacing_law",
+    "propose_topology",
+    "intrinsic_dimension",
+    "mutual_knn_graph",
+    "TopologyProposal",
     "integrity_map",
     "provenance_map",
     "repair_targets",

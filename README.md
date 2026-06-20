@@ -36,7 +36,7 @@ only when forced**, the way `invert` was.
 | Module | Notes § | Status |
 |---|---|---|
 | `manifold_transfer.transport_law` | §2/§3 | implemented — `g(predictor)→spacing` laws and `g_B ∘ g_A⁻¹` |
-| `manifold_transfer.discovery` | §1 | not implemented (topology proposal: mutual-kNN / intrinsic dim) |
+| `manifold_transfer.discovery` | §1 | implemented — mutual-kNN graph, TwoNN intrinsic dimension, and `propose_topology` (dim + connectivity + closure-based cyclic/open) → a suggested gamfit smooth |
 | `manifold_transfer.audit` | §6 + §5 causal leg | implemented — integrity map, provenance, spatial seam/interference map, repair targeting, geometry-side verification, and the causal-steering load-bearing check (via `gamfit` `.steer()`); repair *execution* still needs a live model |
 
 ## Develop
