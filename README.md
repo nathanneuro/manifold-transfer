@@ -38,6 +38,25 @@ only when forced**, the way `invert` was.
 | `manifold_transfer.transport_law` | §2/§3 | implemented — `g(predictor)→spacing` laws and `g_B ∘ g_A⁻¹` |
 | `manifold_transfer.discovery` | §1 | implemented — mutual-kNN graph, TwoNN intrinsic dimension, and `propose_topology` (dim + connectivity + closure-based cyclic/open) → a suggested gamfit smooth |
 | `manifold_transfer.audit` | §6 + §5 causal leg | implemented — integrity map, provenance, spatial seam/interference map, repair targeting, geometry-side verification, and the causal-steering load-bearing check (via `gamfit` `.steer()`); repair *execution* still needs a live model |
+| `manifold_transfer.models` | model harness | implemented — white-box activation extraction (`extract`) and activation→chart-coordinate reduction (`charts`); requires the `models` extra (torch, transformers) |
+
+## Run the real distillation audit
+
+`experiments/gpt2_distilgpt2_audit.py` runs the §6 integrity audit end-to-end on
+a genuine distillation pair (GPT-2 → DistilGPT2): extract final-layer activations
+for ordered/cyclic concepts from both models, reduce to chart coordinates, and
+fit the per-concept teacher→student transport.
+
+```bash
+uv run --project ../gam --with torch --with transformers --with accelerate \
+    python experiments/gpt2_distilgpt2_audit.py
+```
+
+A first run found the linear/ordered concepts (digits, teens, ranks, letters)
+transport monotonically (preserved) and `months` keeps its cyclic structure,
+while the `weekdays` circle did **not** survive cleanly (transport topology
+broken) — the kind of per-concept integrity signal the audit is for. (v1
+signal, small sample; treat as illustrative.)
 
 ## Develop
 
