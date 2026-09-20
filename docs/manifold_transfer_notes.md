@@ -14,10 +14,12 @@ Two papers anchor the argument:
 - **Wurgaft, Rager, Kowal et al., *Manifold Steering Reveals the Shared Geometry of Neural Network
   Representation and Behavior*** (arXiv:2605.05115). Hereafter **Manifold Steering**.
 
-A standing caveat applies to everything past Section 1: neither paper studies cross-model transfer
-of a *specific named* manifold, the cost of measuring it, induction of absent structure, or
-distillation auditing. Those sections are extrapolation. What the papers supply is a constraint on
-what the extrapolations can assume.
+A standing caveat applies to everything from §1.1's last paragraph on: neither paper studies
+cross-model transfer of a *specific named* manifold, the cost of measuring it, induction of absent
+structure, or distillation auditing. "Topology transfers" is this document's hypothesis, not either
+paper's result (§1.1 says exactly what the Aristotelian evidence does and does not show). Everything
+past §1 is extrapolation. What the papers supply is a constraint on what the extrapolations can
+assume — and, in one place (§2.1), a functional form they did not set out to give.
 
 ---
 
@@ -49,8 +51,19 @@ refinement the **Aristotelian Representation Hypothesis**: networks converge to 
 neighborhood relationships*, i.e. shared **topological** structure rather than shared **metric**
 structure.
 
-**Takeaway for transfer:** across models, the durable invariant is the neighbor graph — connectivity,
-cyclic-vs-open, intrinsic dimension, neighbor order. Spacing is model-specific.
+**What this does and does not show.** It shows that, over a *broad input set*, two models' mutual
+k-NN graphs overlap more than a permutation null — significantly, in every pair. It does not show
+that a *named* concept's manifold has the same homology in two models: nobody in that analysis
+asked whether the weekday loop in model A is a loop in model B. And the overlap values in this
+literature are modest even when they are significant; "significant neighborhood agreement" is a
+statement about a population of points, not a guarantee about any seven of them. The Aristotelian
+result therefore licenses a weaker claim than the rest of these notes need: *if* anything survives
+across models, it is ordinal neighborhood structure, and it is certainly not spacing.
+
+**Takeaway for transfer (hypothesis, not result):** across models, the candidate invariant is the
+neighbor graph — connectivity, cyclic-vs-open, intrinsic dimension, neighbor order — and spacing is
+model-specific. That a *particular* concept's topology transfers is the thing every experiment below
+has to establish per concept, at the concept's own sample size (§6.5).
 
 ### 1.2 Within a model, the metric manifold is real and causally load-bearing
 
@@ -79,6 +92,14 @@ give **factored control** of the two grid axes. They reframe steering as choosin
 *geometry* for activation space rather than the right *direction*, formalizing linear / density /
 pullback metrics (their Definition 1).
 
+One detail of their construction matters more than they make of it. Hellinger coordinates are the
+square-root embedding of the simplex, and the Euclidean metric there is one quarter of the
+Fisher-Rao metric. So "activation geodesics are isometric to output distributions in Hellinger
+coordinates" says that *arc length along the activation manifold is Fisher-Rao arc length of the
+output distribution*: per unit of the concept coordinate, the manifold moves at speed
+`ds/dθ ∝ √I(θ)`, with `I` the Fisher information of the next-token distribution with respect to
+the concept coordinate. §2.1 builds on this.
+
 **Takeaway for transfer:** within a model and within a domain with known intrinsic coordinates, the
 metric manifold is a legitimate control surface. The user's intuition — "spirals for days of the
 week, a repeating loop progressing through time" — is correct as a *within-model* statement.
@@ -89,7 +110,7 @@ Putting the two together yields the carve-up that the rest of these notes exploi
 
 | Property | Within model | Across models |
 |---|---|---|
-| **Topology** (neighbor graph, connectivity, cyclic/open, intrinsic dim) | strong, causal (Manifold Steering) | the surviving invariant (Aristotelian) |
+| **Topology** (neighbor graph, connectivity, cyclic/open, intrinsic dim) | strong, causal (Manifold Steering) | the *candidate* invariant — consistent with, not shown by, Aristotelian |
 | **Metric** (spacing, geodesic distance, "evenness") | strong, causal (Manifold Steering) | **does not transfer** (Aristotelian §F.9) |
 
 So: *"repeating loop"* holds and transfers. *"Progressing evenly"* is the metric — it holds within a
@@ -137,24 +158,73 @@ map is smooth — i.e. iff *x*'s statistics resemble an already-calibrated conce
    ambient measurement used to *locate* *x*, even when `φ` on intrinsic coordinates is fine.
 
 **A testable meta-pattern hypothesis.** The strongest clean form: the distortion is a **single
-shared monotone law relating local spacing to local confusability/uncertainty**, not a per-concept
-warp. Motivation: neighbors are close *because* they are confusable, and confusability tracks
-co-occurrence (the conceptual-spaces account). If both models obey `spacing = g(local
-confusability)` with model-specific `g`, then
+shared law relating local spacing to local confusability**, not a per-concept warp. Motivation:
+neighbors are close *because* they are confusable, and confusability tracks co-occurrence (the
+conceptual-spaces account). If both models obey `spacing = g(local confusability)` with
+model-specific `g`, then
 
 ```
 φ_{A→B}(x)  ≈  g_B( g_A^{-1}( · ) )   evaluated pointwise along x
 ```
 
 and `φ_x` becomes predictable from *x*'s confusability profile — measurable in B directly (white-box)
-via output-distribution entropy on *x*-adjacent tokens, without a full manifold fit. This predicts:
-(a) concepts with similar uncertainty structure share `φ`; (b) novel *x* is transferable iff B's
-uncertainty profile on *x* is estimable cheaply; (c) existence-in-B fails exactly when B's
-uncertainty on *x* is flat (nothing to embed) or degenerate (collapse).
+without a full manifold fit. This predicts: (a) concepts with similar confusability structure share
+`φ`; (b) novel *x* is transferable iff B's confusability profile on *x* is estimable cheaply; (c)
+existence-in-B fails exactly when B's confusability on *x* is flat (nothing to embed) or degenerate
+(collapse).
 
-**Status.** With only a handful of known concepts you can *reject* a too-simple law but not *confirm*
-a rich one. The quantity to inspect is the spacing/curvature **residual**, not the headline Pearson
-`r`, since `r` is rank-ish and hides metric structure.
+### 2.1 The law already has a known form
+
+An earlier draft left `g` as a free monotone function to regress, keyed to output-distribution
+*entropy*. Both halves of that are wrong, and §1.2's Hellinger observation says why.
+
+**The predictor.** Entropy is a scalar per concept; it says how uncertain the model is, not *which*
+neighbours it confuses. Two concepts can have identical entropy with one confusable against its
+manifold neighbours and the other against unrelated tokens. The quantity that tracks spacing is
+the distance between *adjacent* concepts' next-token distributions — the Hellinger distance, or
+its geodesic version the Fisher-Rao distance `d_FR(p, q) = 2 arccos Σ√(p q)`. For adjacent concepts
+`d_FR ≈ √I · Δθ`: it *is* the local Fisher speed integrated over one concept step.
+
+**The form.** Within a model, Manifold Steering's isometry makes `g` linear through the origin:
+
+```
+spacing_i,i+1  ≈  κ_model · d_FR( p_i , p_{i+1} )
+```
+
+with one model-specific scale `κ` and nothing else to fit. The linearity residual is the
+falsifier; the monotone smooth of the earlier draft is the fallback if linearity is rejected, with
+the same predictor.
+
+**Two consequences.**
+
+1. **The A→B warp is predictable from behaviour alone.** Dividing the two models' laws,
+
+   ```
+   ds_B / ds_A  =  √( I_B / I_A )     (up to the nuisance κ_B / κ_A)
+   ```
+
+   No activations of B are needed to predict how B respaces *x*: only B's output distributions on
+   *x*'s items. This is the concept-independent transport §A of the scope map asks for, and it has
+   no free function in it.
+
+2. **A sharper null for distillation.** A distill trained to match the teacher's outputs has
+   `p_B ≈ p_A` wherever its output KL is small, so the prediction there is `ds_B / ds_A ≈ 1` — a
+   near-identity warp — pair by pair. That is far sharper than "calibrate the distill's
+   characteristic distortion on known-good concepts": it says exactly which adjacent pairs should
+   be respaced and by how much, and any pair with small KL and a large spacing residual is
+   *geometry lost without behaviour lost*. It is testable on the GPT-2 → DistilGPT2 pair today
+   (`experiments/gpt2_fisher_law.py`).
+
+**The bridge to the brain side.** This is also the efficient-coding law. Population codes allocate
+Fisher information in proportion to the stimulus prior (Ganguli & Simoncelli 2014), so
+discriminability tracks stimulus frequency. "Geometry inherited from co-occurrence statistics" is
+the same claim with the functional form attached, and it is why a comparison of a language model's
+concept manifolds with a sensory population's tuning is not a metaphor: both are `ds ∝ √I dθ`, and
+what differs is the prior each was trained under.
+
+**Status.** With only a handful of known concepts you can *reject* the linear law but not *confirm*
+a rich alternative. The quantity to inspect is the spacing **residual** from `κ · d_FR`, not the
+headline Pearson `r`, since `r` is rank-ish and hides metric structure.
 
 ---
 
@@ -171,9 +241,11 @@ alignment from few anchors**. The key division of labor follows directly from §
 **Procedure.**
 
 1. **Fit the transport as a law over a latent, not a per-concept lookup.** Across known concepts,
-   regress local spacing on a both-model-available predictor (output entropy / neighbor
-   confusability) *separately within each model* to get `g_A`, `g_B`. Stability across concepts is
-   what makes the transport concept-independent.
+   regress local spacing on the both-model-available predictor — the Fisher-Rao distance between
+   adjacent items' next-token distributions (§2.1) — *separately within each model* to get `g_A`,
+   `g_B`. Expected form: a single scale `κ` per model; fall back to a monotone smooth only if
+   linearity is rejected. Stability across concepts is what makes the transport
+   concept-independent.
 2. **Predict *x* in B before consuming B-samples.** Fit `M_x^A` densely (full A access), read A's
    spacing, push through `g_B ∘ g_A^{-1}`. Topology comes from A; spacing from the law; B's own
    confusability along *x* is read directly by probing B (white-box) even pre-fit.
@@ -327,15 +399,23 @@ preserved, warped, or lost.
 ### 6.1 Single teacher (B = distill of A): integrity as transport residual against a baseline
 
 A faithful distill should make B's geometry a low-distortion image of A's, so the transport should be
-near identity-up-to-scale on well-preserved concepts. This gives a **null model with teeth**:
+near identity-up-to-scale on well-preserved concepts. §2.1 turns that into a **null model with
+teeth**, and a *predicted* one rather than a calibrated one:
 
-1. Calibrate the transport on *known-good* concepts (*y*, *z* — ones you trust the distill kept).
-   This establishes the distill's *characteristic distortion* — its normal compression of geometry.
-2. For every other manifold, measure deviation *from that baseline*. Distorts more than baseline ⇒
-   localized failure. Distorts as baseline ⇒ faithfully (if lossily) preserved.
+1. **Fisher null (preferred).** For every adjacent pair of items in every concept, the predicted
+   warp is `ds_B / ds_A = √(I_B / I_A)`, read from the two models' next-token distributions. Where
+   B's output KL against A is small the prediction is `≈ 1`. The integrity signal is the
+   **log-residual of the observed activation-spacing ratio against that prediction**, and the
+   pairs that matter are those with *small KL and large residual*: B still behaves like A there
+   but no longer lays the concept out like A. Nothing is calibrated on trusted concepts; the null
+   comes from behaviour.
+2. **Characteristic-distortion baseline (fallback).** If the linear Fisher form is rejected for
+   this pair (§2.1 status), calibrate the transport on *known-good* concepts (*y*, *z*) to
+   establish the distill's normal compression of geometry, and measure every other manifold's
+   deviation from that baseline. Distorts more than baseline ⇒ localized failure; distorts as
+   baseline ⇒ faithfully (if lossily) preserved.
 
-The integrity signal is the **residual against the distill's own characteristic distortion**;
-concepts that pop out of that residual are the repair targets.
+Either way, concepts that pop out of the residual are the repair targets.
 
 ### 6.2 Hybrid teachers (B = distill of A and C): provenance, interference, seams
 
@@ -393,7 +473,34 @@ interference seam between A's and C's number representations — repair those th
 *which* concept, *from which parent*, *via which failure mode*, *load-bearing or cosmetic* — is the
 point.
 
-### 6.5 An open design question
+### 6.5 Measurement discipline for named concepts (what a seven-point finding can say)
+
+The pilot audit on GPT-2 → DistilGPT2 reported the weekday circle as "topology broken" in the
+distill. That finding is probably fragile, and the reasons generalize to every named concept in
+this programme:
+
+- **With seven points, cyclic versus open comes down to one gap.** A loop and an arc differ only in
+  the closing edge. Report that closing edge as a *ratio* to the other edges, with an interval,
+  rather than as a verdict.
+- **TwoNN is meaningless at that `n`.** It is a Pareto-tail fit; the tail is empty at seven points.
+  The discovery estimators are for point clouds, not for the handful of items a named concept
+  supplies. The code refuses below twenty points.
+- **The hypothesis is the ordering, so test the ordering.** The exhaustive null is every distinct
+  cyclic ordering of the items: `(n−1)!/2`, which is 360 for the week. The named order should be a
+  shorter tour than nearly all of them; the smallest attainable `p` is `1/360`.
+- **Variance has to come from somewhere.** With one point per item the only honest variance is over
+  the *prompt templates* that produced each item's point: many templates per concept, bootstrap
+  over them, and report the fraction of replicates in which the verdict holds.
+- **Do not sweep layers.** The weekday circle in GPT-2 is reported mid-network, not at the final
+  layer, and matching twelve layers against six is exactly the look-elsewhere confound §1.1
+  quotes from the Aristotelian paper. Pre-register the depths (the pilot uses two, mid and final,
+  as fractions of each model's depth) and correct for the number looked at.
+
+The revised pilot (`experiments/gpt2_fisher_law.py`, `experiments/gpt2_distilgpt2_audit.py`) does
+all five. Until it has run, the weekday result should be read as "one transport fit at one layer
+on five templates broke", not as a property of the distill.
+
+### 6.6 An open design question
 
 If B is being *designed* rather than audited post-hoc, the most interesting move is making
 manifold-topology preservation an explicit **distillation objective** (a geometric / neighbor-
@@ -408,12 +515,29 @@ place to put a measurement.
 
 ## 7. One-line summary of the through-line
 
-Topology is the transferable invariant (Aristotelian); the metric manifold is a within-model causal
-control surface (Manifold Steering). Every downstream task — predicting *x* in B, filling gaps from
-sparse samples, pricing measurement, inducing absent structure, auditing and repairing distills —
-reduces to spending cheap signals where they're reliable (topology, neighbor identity, in-hull
-transport) and refusing to infer the expensive ones (spacing, existence, out-of-hull warps) without
-either a direct sample or a teacher that authorizes the shape.
+Topology is the candidate transferable invariant (consistent with Aristotelian, to be shown per
+concept); the metric manifold is a within-model causal control surface whose speed is Fisher
+information (Manifold Steering, read in Hellinger coordinates). Every downstream task — predicting
+*x* in B, filling gaps from sparse samples, pricing measurement, inducing absent structure, auditing
+and repairing distills — reduces to spending cheap signals where they're reliable (topology,
+neighbor identity, the behaviour-predicted warp) and refusing to infer the expensive ones (spacing
+outside the law, existence, out-of-hull warps) without either a direct sample or a teacher that
+authorizes the shape.
+
+## 8. What feeds this layer: discovery of unnamed manifolds
+
+Everything above audits manifolds we already have names for — weekdays, months, digits. The layer
+takes a concept and an ordering as given and asks whether the geometry honours them. It cannot
+find a manifold nobody named, and the interesting failures of a distill are likely to be there.
+
+The natural front end is to group sparse-autoencoder latents into candidate manifolds: latents that
+co-activate along a 1-D or 2-D sweep of inputs, whose mutual k-NN graph (§1) has the connectivity of
+a loop or a sheet, become a *proposed* concept with a *proposed* ordering, and then enter the
+pipeline exactly as a named concept does — ordering null, template bootstrap, Fisher law, transport
+residual. The discovery module's large-`n` estimators are the right tools for that stage, since a
+latent group supplies a point cloud rather than seven points. This is not built; it is the gap
+between "audit what we know" and "find what we lost", and it should be built before the audit is
+applied to a model whose concept inventory is not already known.
 
 ---
 
@@ -423,6 +547,11 @@ either a direct sample or a teacher that authorizes the shape.
   Aristotelian View.* arXiv:2602.14486.
 - Wurgaft, D., Rager, C., Kowal, M., et al. *Manifold Steering Reveals the Shared Geometry of Neural
   Network Representation and Behavior.* arXiv:2605.05115.
+- Ganguli, D., & Simoncelli, E. P. *Efficient sensory encoding and Bayesian inference with
+  heterogeneous neural populations.* Neural Computation 26(10), 2014. (Fisher information allocated
+  in proportion to the stimulus prior — the efficient-coding form of the §2.1 law.)
+- Facco, E., d'Errico, M., Rodriguez, A., & Laio, A. *Estimating the intrinsic dimension of datasets
+  by a minimal neighborhood information.* Scientific Reports 7, 2017. (TwoNN.)
 - Supporting concepts cited within those works and used above: Huh et al. (Platonic Representation
   Hypothesis); Kornblith et al. (CKA); Kriegeskorte et al. (RSA); Park et al. (in-context learning of
   representations); Engels et al., Modell et al., Karkada et al., Prieto et al. (origins of

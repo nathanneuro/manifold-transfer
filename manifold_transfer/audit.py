@@ -29,19 +29,12 @@ from typing import Any, Mapping
 
 import numpy as np
 
-from .transport_law import _as_1d
-
-try:
-    import gamfit
-except ImportError as exc:  # pragma: no cover - environment wiring
-    raise ImportError(
-        "manifold-transfer requires gamfit; run `uv sync` so it is installed."
-    ) from exc
+from .transport_law import _as_1d, _gamfit
 
 
 def _transport_defect(coords_from: Any, coords_to: Any, topology: str) -> tuple[float, bool]:
     """Fit the teacher→student transport and read out (isometry_defect, preserved)."""
-    t = gamfit.fit_transport(
+    t = _gamfit().fit_transport(
         _as_1d("coords_from", coords_from),
         _as_1d("coords_to", coords_to),
         topology,
@@ -189,7 +182,7 @@ def _route_distortion_field(
 
     Returns ``(s, distortion)`` sorted by ascending student coordinate `s`.
     """
-    h = gamfit.fit_transport(
+    h = _gamfit().fit_transport(
         _as_1d("parent_coords", parent_coords),
         _as_1d("student_coords", student_coords),
         topology,
