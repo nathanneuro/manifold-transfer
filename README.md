@@ -90,13 +90,20 @@ uv run pytest
 
 `fisher`, `discovery` and `models.charts` (and their tests) are pure numpy and
 import without gamfit; only the transport fits and the audit need the core.
-Without a sibling `gam` checkout, the published wheel works for everything here
-(`pip install gamfit`); the tests pass against gamfit 0.1.267. Two things to
-know about current gamfit: its stochastic-pairs transport smooth refuses a
-target that is an *exact* function of the source (the synthetic test fixtures
-carry a little coordinate scatter for that reason, as real chart estimates do),
-and the sparse SAE assignment formerly called `ibp_map` is now
-`ordered_beta_bernoulli`.
+The tests pass against a maturin build of gam at 0.1.268 and, without a sibling
+checkout, against the published 0.1.267 wheel (`pip install gamfit`). Three
+things to know about current gamfit: the transport functions moved to
+`gamfit.sae` (this package resolves `fit_transport` from there, falling back to
+the top level for the wheel); the stochastic-pairs transport smooth refuses a
+target that is an *exact* function of the source, so the synthetic test
+fixtures carry a little coordinate scatter, as real chart estimates do (0.1.268
+also offers `pairs="deterministic"` for genuinely noise-free maps); and the
+sparse SAE assignment formerly called `ibp_map` is now `ordered_beta_bernoulli`.
+Building gam from source at 0.1.268 currently trips its own `build.rs` style
+scanner on ten lines of the gam tree itself; those need patching in the gam
+checkout before `maturin develop` gets past the scanner;
+[`docs/gam-0.1.268-ban-scanner.patch`](docs/gam-0.1.268-ban-scanner.patch) is the
+patch that built here (`git apply` it in the gam checkout).
 
 ## What is not here yet
 

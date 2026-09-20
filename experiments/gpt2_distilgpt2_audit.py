@@ -23,11 +23,11 @@ from __future__ import annotations
 
 import numpy as np
 
-import gamfit
 from manifold_transfer.audit import integrity_map, repair_targets
 from manifold_transfer.discovery import bonferroni, bootstrap_topology
 from manifold_transfer.models.charts import chart_coordinate
 from manifold_transfer.models.extract import extract_last_token_activations, resolve_layer
+from manifold_transfer.transport_law import _fit_transport
 
 from concepts import CONCEPTS, DEPTHS, TEMPLATES, instances
 
@@ -45,7 +45,7 @@ def audit_at_depth(tag: str, act_teacher: np.ndarray, act_student: np.ndarray,
         lo, hi = spans[name]
         c_t = chart_coordinate(act_teacher[lo:hi], topo)
         c_s = chart_coordinate(act_student[lo:hi], topo)
-        ht = gamfit.fit_transport(c_t, c_s, topo, topo)
+        ht = _fit_transport()(c_t, c_s, topo, topo)
         print(
             f"  {name:10s} {topo:9s} {str(ht.topology_preserved):10s} "
             f"{ht.isometry_defect:.4f}"

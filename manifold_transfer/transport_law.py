@@ -61,6 +61,20 @@ def _gamfit() -> Any:
     return gamfit
 
 
+def _fit_transport() -> Any:
+    """gamfit's ``fit_transport``, wherever this gamfit puts it: current gamfit
+    exposes the transport functions in ``gamfit.sae`` (the research modules
+    went private in 0.1.268); the 0.1.267 wheel still has it at top level."""
+    gamfit = _gamfit()
+    sae = getattr(gamfit, "sae", None)
+    fn = getattr(sae, "fit_transport", None) if sae is not None else None
+    if fn is None:
+        fn = getattr(gamfit, "fit_transport", None)
+    if fn is None:
+        raise ImportError("this gamfit exposes neither gamfit.sae.fit_transport nor gamfit.fit_transport")
+    return fn
+
+
 def _as_1d(name: str, x: Any) -> np.ndarray:
     arr = np.ascontiguousarray(x, dtype=np.float64).reshape(-1)
     if arr.size == 0:
@@ -85,7 +99,7 @@ def fit_spacing_law(predictor: Any, spacing: Any, *, topology: str = "interval")
         raise ValueError(
             f"predictor and spacing must have equal length, got {p.shape} and {s.shape}"
         )
-    return _gamfit().fit_transport(p, s, topology, topology)
+    return _fit_transport()(p, s, topology, topology)
 
 
 @dataclass

@@ -81,6 +81,9 @@ def test_real_circle_atom_load_bearing_through_live_gamfit():
     # off-manifold while small steps stay on it.
     import gamfit
 
+    # current gamfit keeps the SAE fit in gamfit.sae; the 0.1.267 wheel at top level
+    sae_manifold_fit = getattr(getattr(gamfit, "sae", gamfit), "sae_manifold_fit", None) or gamfit.sae_manifold_fit
+
     rng = np.random.default_rng(0)
     n, p = 300, 10
     theta = rng.uniform(0.0, 2.0 * math.pi, n)
@@ -90,7 +93,7 @@ def test_real_circle_atom_load_bearing_through_live_gamfit():
     z = harm @ mixing + 0.05 * rng.normal(size=(n, p))
     z -= z.mean(axis=0, keepdims=True)
 
-    fit = gamfit.sae_manifold_fit(
+    fit = sae_manifold_fit(
         X=z,
         K=1,
         atom_basis="periodic",

@@ -31,9 +31,9 @@ def test_seam_map_locates_parent_handoff():
     # Student is the reference coordinate. Parent A is unit-speed on the LEFT and
     # stretched on the right; parent C is the opposite. So A owns the left, C owns
     # the right, with a seam near the midpoint.
-    s = T
-    a_coords = s + 0.6 * np.maximum(0.0, s - 0.5) ** 2  # A distorted on the right
-    c_coords = s + 0.6 * np.maximum(0.0, 0.5 - s) ** 2  # C distorted on the left
+    s = _obs(T, seed=20)
+    a_coords = T + 0.6 * np.maximum(0.0, T - 0.5) ** 2  # A distorted on the right
+    c_coords = T + 0.6 * np.maximum(0.0, 0.5 - T) ** 2  # C distorted on the left
     sm = seam_map({"student": s, "teachers": {"A": a_coords, "C": c_coords}})
 
     owners = set(sm.best_parent.tolist())
@@ -49,7 +49,7 @@ def test_seam_map_locates_parent_handoff():
 
 def test_seam_map_requires_two_surviving_parents():
     s = T
-    folded = 0.5 + 0.4 * np.sin(4.0 * s)  # breaks topology vs any monotone parent
+    folded = _obs(0.5 + 0.4 * np.sin(4.0 * s), seed=21)  # breaks topology vs any monotone parent
     with pytest.raises(ValueError, match="fewer than two parents"):
         seam_map({"student": folded, "teachers": {"A": s, "C": s**2}})
 
