@@ -99,6 +99,11 @@ target that is an *exact* function of the source, so the synthetic test
 fixtures carry a little coordinate scatter, as real chart estimates do (0.1.268
 also offers `pairs="deterministic"` for genuinely noise-free maps); and the
 sparse SAE assignment formerly called `ibp_map` is now `ordered_beta_bernoulli`.
+One test is known red on current gamfit: the live SAE steering test, whose one-atom
+circle fit fails to converge inside `sae_manifold_fit` at 0.1.268 (and does not
+return at 0.1.267). It is left failing on purpose, with the failure reported to gam,
+rather than skipped; deselect it locally with
+`--deselect tests/test_steering.py::test_real_circle_atom_load_bearing_through_live_gamfit`.
 Building gam from source at 0.1.268 currently trips its own `build.rs` style
 scanner on ten lines of the gam tree itself; those need patching in the gam
 checkout before `maturin develop` gets past the scanner;
