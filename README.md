@@ -90,6 +90,13 @@ uv run pytest
 
 `fisher`, `discovery` and `models.charts` (and their tests) are pure numpy and
 import without gamfit; only the transport fits and the audit need the core.
+Without a sibling `gam` checkout, the published wheel works for everything here
+(`pip install gamfit`); the tests pass against gamfit 0.1.267. Two things to
+know about current gamfit: its stochastic-pairs transport smooth refuses a
+target that is an *exact* function of the source (the synthetic test fixtures
+carry a little coordinate scatter for that reason, as real chart estimates do),
+and the sparse SAE assignment formerly called `ibp_map` is now
+`ordered_beta_bernoulli`.
 
 ## What is not here yet
 

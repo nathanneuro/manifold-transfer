@@ -95,7 +95,8 @@ def test_real_circle_atom_load_bearing_through_live_gamfit():
         K=1,
         atom_basis="periodic",
         d_atom=2,
-        assignment="ibp_map",
+        # the IBP-style sparse assignment: gamfit's current name for it.
+        assignment="ordered_beta_bernoulli",
         n_iter=25,
         learning_rate=0.04,
         random_state=0,

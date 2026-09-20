@@ -17,6 +17,16 @@ from manifold_transfer.audit import (
 T = np.linspace(0.05, 1.0, 120)
 
 
+def _obs(coords, scale=1e-3, seed=0):
+    """Estimated chart coordinates, not an exact function of the source: gamfit's
+    stochastic-pairs REML smooth refuses a design that interpolates its response
+    exactly ("profiled residual not resolvably positive"), so every synthetic
+    target carries a little coordinate-estimation scatter, as real ones do."""
+    rng = np.random.default_rng(seed)
+    coords = np.asarray(coords, dtype=float)
+    return coords + scale * rng.normal(size=coords.shape)
+
+
 def test_seam_map_locates_parent_handoff():
     # Student is the reference coordinate. Parent A is unit-speed on the LEFT and
     # stretched on the right; parent C is the opposite. So A owns the left, C owns
@@ -74,18 +84,20 @@ def test_repair_plan_blend_picks_least_distorted_parent():
 
 
 def test_verify_repair_geometry_oracle():
-    baseline = {f"g{i}": (T, T + 0.03 * np.sin((i + 2) * T)) for i in range(3)}
+    baseline = {
+        f"g{i}": (T, _obs(T + 0.03 * np.sin((i + 2) * T), seed=i)) for i in range(3)
+    }
     parent = T
 
     # Good repair: repaired student ~ parent (near identity) -> matches.
-    repaired_good = T + 0.01 * np.sin(2.5 * T)
+    repaired_good = _obs(T + 0.01 * np.sin(2.5 * T), seed=10)
     v = verify_repair(repaired_good, parent, baseline_concepts=baseline)
     assert v.transport_matches_parent is True
     assert v.known_good_undisturbed is True
     assert v.geometry_ok is True
 
     # Bad repair: still folded -> no faithful transport to the parent.
-    repaired_bad = 0.5 + 0.4 * np.sin(4.0 * T)
+    repaired_bad = _obs(0.5 + 0.4 * np.sin(4.0 * T), seed=11)
     v2 = verify_repair(repaired_bad, parent, baseline_concepts=baseline)
     assert v2.transport_matches_parent is False
     assert v2.geometry_ok is False

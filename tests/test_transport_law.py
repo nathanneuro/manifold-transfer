@@ -8,6 +8,16 @@ import pytest
 from manifold_transfer.transport_law import TransportLaw, fit_spacing_law
 
 
+def _obs(coords, scale=1e-3, seed=0):
+    """Estimated chart coordinates, not an exact function of the source: gamfit's
+    stochastic-pairs REML smooth refuses a design that interpolates its response
+    exactly ("profiled residual not resolvably positive"), so every synthetic
+    target carries a little coordinate-estimation scatter, as real ones do."""
+    rng = np.random.default_rng(seed)
+    coords = np.asarray(coords, dtype=float)
+    return coords + scale * rng.normal(size=coords.shape)
+
+
 def test_fit_spacing_law_is_monotone_and_invertible():
     c = np.linspace(0.05, 1.0, 80)
     g = fit_spacing_law(c, c**1.5)
@@ -37,7 +47,7 @@ def test_calibrate_rejects_nonmonotone_law():
     c = np.linspace(0.0, 1.0, 80)
     with pytest.raises(ValueError, match="non-monotone"):
         # spacing folds (sin) -> g_A^{-1} undefined -> must refuse.
-        TransportLaw.calibrate(c, np.sin(4.0 * c), c + 0.1)
+        TransportLaw.calibrate(c, _obs(np.sin(4.0 * c)), _obs(c + 0.1, seed=1))
 
 
 def test_in_hull_flags_out_of_range_predictor():
