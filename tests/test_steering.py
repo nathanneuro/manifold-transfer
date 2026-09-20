@@ -79,7 +79,18 @@ def test_real_circle_atom_load_bearing_through_live_gamfit():
     # End-to-end: fit a real circle ManifoldSAE and drive causal_steering_check
     # through gamfit's .steer(). A circle is curved, so a wide chord teleports
     # off-manifold while small steps stay on it.
+    #
+    # Known red on current gamfit: at gam main 193ca20 (0.1.268) this fit raises
+    # RemlConvergenceError inside sae_manifold_fit (arrow-Schur proximal
+    # correction rejects a 1e-8 Armijo step) for every assignment kind and
+    # iteration count tried, and the 0.1.267 wheel does not return in 25 min.
+    # That is a gamfit failure on the simplest possible input, reported
+    # upstream; the test stays as written so it goes green the moment the fit
+    # converges again. See README "Develop".
     import gamfit
+
+    # current gamfit keeps the SAE fit in gamfit.sae; the 0.1.267 wheel at top level
+    sae_manifold_fit = getattr(getattr(gamfit, "sae", gamfit), "sae_manifold_fit", None) or gamfit.sae_manifold_fit
 
     rng = np.random.default_rng(0)
     n, p = 300, 10
@@ -90,12 +101,13 @@ def test_real_circle_atom_load_bearing_through_live_gamfit():
     z = harm @ mixing + 0.05 * rng.normal(size=(n, p))
     z -= z.mean(axis=0, keepdims=True)
 
-    fit = gamfit.sae_manifold_fit(
+    fit = sae_manifold_fit(
         X=z,
         K=1,
         atom_basis="periodic",
         d_atom=2,
-        assignment="ibp_map",
+        # the IBP-style sparse assignment: gamfit's current name for it.
+        assignment="ordered_beta_bernoulli",
         n_iter=25,
         learning_rate=0.04,
         random_state=0,

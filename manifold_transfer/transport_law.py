@@ -4,21 +4,31 @@ The central primitive of the manifold-transfer notes. Across models, the durable
 invariant is *topology* (neighbor identity); *metric spacing* does not transfer.
 But if both models obey a per-model law
 
-    spacing = g(local confusability)
+    spacing = g(predictor)
 
-keyed to a both-model-available predictor (output-distribution entropy / neighbor
-confusability) rather than to the model pair, then the cross-model metric warp is
+keyed to a both-model-available predictor rather than to the model pair, then
+the cross-model metric warp is
 
     phi_{A->B}  =  g_B o g_A^{-1}
 
 evaluated pointwise. That decomposition is what lets the warp generalize to a
-*novel* concept with no paired anchors: measure the concept's confusability
-profile (directly available in B, white-box) and push it through g_B, or push an
+*novel* concept with no paired anchors: measure the concept's predictor profile
+(directly available in B, white-box) and push it through g_B, or push an
 A-spacing through phi.
+
+**The predictor is not free.** Manifold Steering's isometry between activation
+geodesics and output distributions in Hellinger coordinates fixes it: the right
+predictor is the Fisher-Rao distance between *adjacent* concepts' next-token
+distributions (``manifold_transfer.fisher.behavioral_spacing``), and the law's
+expected form is linear through the origin, ``spacing = kappa · d_FR``, with one
+model-specific scale (``fisher.fisher_speed_law``). A scalar entropy is the
+wrong predictor: it ignores *which* neighbours are confusable. The monotone
+smooth fitted here is the fallback for when the linear form is rejected — the
+same predictor, with the shape of ``g`` left free.
 
 This module fits g_A, g_B as monotone transports (gamfit.fit_transport) and
 composes them through the core's exact transport inverse. It does **not** compute
-confusability/spacing from raw model activations — that is the caller's
+the predictor/spacing from raw model activations — that is the caller's
 application-specific input; here a "predictor" and a "spacing" are just paired
 1-D arrays over a set of calibration concepts.
 
@@ -36,13 +46,33 @@ from typing import Any
 
 import numpy as np
 
-try:
-    import gamfit
-except ImportError as exc:  # pragma: no cover - environment wiring
-    raise ImportError(
-        "manifold-transfer requires gamfit (the maturin-built package from the "
-        "sibling gam checkout). Run `uv sync` so gamfit is installed editable."
-    ) from exc
+
+def _gamfit() -> Any:
+    """Import gamfit lazily so the pure-numpy modules (discovery, fisher,
+    charts) import without it; only the transport fits need the core."""
+    try:
+        import gamfit
+    except ImportError as exc:  # pragma: no cover - environment wiring
+        raise ImportError(
+            "manifold-transfer requires gamfit (the maturin-built package from the "
+            "sibling gam checkout) for transport fits. Run `uv sync` so gamfit is "
+            "installed editable."
+        ) from exc
+    return gamfit
+
+
+def _fit_transport() -> Any:
+    """gamfit's ``fit_transport``, wherever this gamfit puts it: current gamfit
+    exposes the transport functions in ``gamfit.sae`` (the research modules
+    went private in 0.1.268); the 0.1.267 wheel still has it at top level."""
+    gamfit = _gamfit()
+    sae = getattr(gamfit, "sae", None)
+    fn = getattr(sae, "fit_transport", None) if sae is not None else None
+    if fn is None:
+        fn = getattr(gamfit, "fit_transport", None)
+    if fn is None:
+        raise ImportError("this gamfit exposes neither gamfit.sae.fit_transport nor gamfit.fit_transport")
+    return fn
 
 
 def _as_1d(name: str, x: Any) -> np.ndarray:
@@ -69,7 +99,7 @@ def fit_spacing_law(predictor: Any, spacing: Any, *, topology: str = "interval")
         raise ValueError(
             f"predictor and spacing must have equal length, got {p.shape} and {s.shape}"
         )
-    return gamfit.fit_transport(p, s, topology, topology)
+    return _fit_transport()(p, s, topology, topology)
 
 
 @dataclass

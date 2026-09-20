@@ -14,14 +14,35 @@ Pure-numpy manifold-learning primitives (no gamfit dependency):
 - ``intrinsic_dimension`` — the TwoNN estimator (Facco et al. 2017).
 - ``propose_topology`` — intrinsic dim + connectivity + cyclic/open verdict,
   mapped to a suggested gamfit smooth.
+
+Those three are *large-n* tools: TwoNN and a mutual-kNN closure test are
+meaningless on the handful of points a named concept supplies (seven weekdays,
+twelve months). For that regime the hypothesis is the ordering itself, and the
+honest tests are:
+
+- ``cyclic_order_test`` — an exhaustive null over every distinct cyclic ordering
+  of the items (``(n-1)!/2``: 360 for seven weekdays), asking whether the named
+  order is a shorter tour than chance. Cyclic-vs-open then rests on one gap (the
+  closing edge), which is reported as a ratio, not decided.
+- ``bootstrap_topology`` — resample the prompt templates behind each item to put
+  an interval on that closure ratio and on the ordering p-value, so a verdict
+  that flips with the template set is seen to flip.
+
+Both take one point per *item* (template-averaged), never the raw instance
+cloud, and neither sweeps layers: pre-register the layer(s) and correct for the
+number you look at (``bonferroni``).
 """
 
 from __future__ import annotations
 
+import itertools
+import math
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
+
+MIN_POINTS_TWONN = 20
 
 
 def _as_2d(name: str, points: Any) -> np.ndarray:
@@ -110,19 +131,27 @@ def _components(adj: np.ndarray) -> list[list[int]]:
     return list(groups.values())
 
 
-def intrinsic_dimension(points: Any, *, discard_fraction: float = 0.1) -> float:
+def intrinsic_dimension(
+    points: Any, *, discard_fraction: float = 0.1, min_points: int = MIN_POINTS_TWONN
+) -> float:
     """Estimate the intrinsic dimension via TwoNN (Facco et al. 2017).
 
     For each point, ``mu = r2 / r1`` (its two nearest-neighbor distances) follows
     a Pareto law whose exponent is the intrinsic dimension. Fitting
     ``-log(1 - F(mu)) = d · log(mu)`` through the origin on the empirical CDF
     (discarding the top ``discard_fraction`` as outliers) recovers ``d``. Needs no
-    embedding dimension and few parameters.
+    embedding dimension and few parameters — but it is a Pareto-tail fit, and
+    below ``min_points`` the tail is empty; the estimator then returns a number
+    that means nothing, so it refuses instead.
     """
     x = _as_2d("points", points)
     n = x.shape[0]
-    if n < 3:
-        raise ValueError("intrinsic dimension needs at least 3 points")
+    if n < min_points:
+        raise ValueError(
+            f"intrinsic dimension needs at least {min_points} points for a "
+            f"meaningful TwoNN estimate, got {n}; for a named concept's handful of "
+            f"items use cyclic_order_test / bootstrap_topology instead"
+        )
     d = _pairwise_distances(x)
     np.fill_diagonal(d, np.inf)
     two = np.sort(d, axis=1)[:, :2]  # nearest two distances per point
@@ -167,6 +196,12 @@ def propose_topology(
     hypothesis — adjudicate it downstream against simpler-topology nulls.
     """
     x = _as_2d("points", points)
+    if x.shape[0] < MIN_POINTS_TWONN:
+        raise ValueError(
+            f"propose_topology needs >= {MIN_POINTS_TWONN} points (got {x.shape[0]}); "
+            f"a named concept's few items are an ordering hypothesis, not a point "
+            f"cloud — test it with cyclic_order_test / bootstrap_topology"
+        )
     dim = intrinsic_dimension(x)
     adj = mutual_knn_graph(x, k)
     components = _components(adj)
@@ -201,3 +236,185 @@ def propose_topology(
             f"verify against a single-component null)"
         )
     return TopologyProposal(dim, n_components, is_cyclic, suggested, rationale)
+
+
+# ── small-n: a named ordering as the hypothesis ─────────────────────────────
+
+
+def _tour_length(points: np.ndarray, order: np.ndarray, closed: bool) -> float:
+    p = points[order]
+    length = float(np.linalg.norm(np.diff(p, axis=0), axis=1).sum())
+    if closed:
+        length += float(np.linalg.norm(p[-1] - p[0]))
+    return length
+
+
+def n_cyclic_orderings(n: int) -> int:
+    """Number of distinct cyclic orderings of ``n`` items (rotations and
+    reflections identified): ``(n-1)!/2`` for ``n >= 3``. 360 for seven days."""
+    if n < 3:
+        return 1
+    return math.factorial(n - 1) // 2
+
+
+@dataclass
+class CyclicOrderTest:
+    """Is the named order a real 1-D arrangement, and does it close?"""
+
+    tour_length: float  # closed tour length of the named order
+    p_value: float  # fraction of distinct cyclic orderings with a tour <= observed
+    n_null: int  # orderings enumerated (exhaustive) or sampled
+    exhaustive: bool
+    closure_ratio: float  # closing edge / mean of the other edges — cyclic-vs-open rests on this
+    rank: int  # 1 = the named order is the shortest tour
+
+
+def cyclic_order_test(
+    item_points: Any,
+    *,
+    order: Any | None = None,
+    max_exhaustive: int = 9,
+    n_samples: int = 20000,
+    seed: int = 0,
+) -> CyclicOrderTest:
+    """Exhaustive (or, past ``max_exhaustive`` items, Monte-Carlo) test of a named
+    cyclic order against every other distinct cyclic ordering of the items.
+
+    ``item_points`` is ``(n_items, d)``, one template-averaged point per item;
+    ``order`` is the hypothesised order (default: row order). The statistic is
+    the closed tour length; the p-value is the fraction of distinct cyclic
+    orderings whose tour is at least as short. With seven items the null has 360
+    members, so the smallest attainable p is ``1/360``.
+
+    ``closure_ratio`` is the one number cyclic-vs-open hangs on at this ``n``:
+    the closing edge divided by the mean of the path edges. Near 1 the loop
+    closes as evenly as it steps; well above 1 the "circle" is an open path
+    whose ends happen to be far apart. It is reported, not thresholded; put an
+    interval on it with :func:`bootstrap_topology` before reading it.
+    """
+    x = _as_2d("item_points", item_points)
+    n = x.shape[0]
+    if n < 4:
+        raise ValueError("cyclic_order_test needs at least 4 items")
+    if order is None:
+        order = np.arange(n)
+    order = np.asarray(order, dtype=int).reshape(-1)
+    if sorted(order.tolist()) != list(range(n)):
+        raise ValueError("order must be a permutation of range(n_items)")
+
+    observed = _tour_length(x, order, closed=True)
+    p_ord = x[order]
+    path_edges = np.linalg.norm(np.diff(p_ord, axis=0), axis=1)
+    closing = float(np.linalg.norm(p_ord[-1] - p_ord[0]))
+    closure_ratio = closing / float(path_edges.mean()) if path_edges.mean() > 0 else float("inf")
+
+    # distinct cyclic orderings: fix item 0 first, take the rest in permutations
+    # with the reflection removed by requiring second < last.
+    if n <= max_exhaustive:
+        count = 0
+        at_most = 0
+        rest = list(range(1, n))
+        for perm in itertools.permutations(rest):
+            if perm[0] > perm[-1]:
+                continue
+            count += 1
+            tour = _tour_length(x, np.array((0,) + perm), closed=True)
+            if tour <= observed + 1e-12:
+                at_most += 1
+        exhaustive = True
+    else:
+        rng = np.random.default_rng(seed)
+        count = n_samples
+        at_most = 1  # the named order itself
+        for _ in range(n_samples - 1):
+            perm = np.concatenate([[0], rng.permutation(np.arange(1, n))])
+            if _tour_length(x, perm, closed=True) <= observed + 1e-12:
+                at_most += 1
+        exhaustive = False
+    return CyclicOrderTest(
+        observed, at_most / count, count, exhaustive, closure_ratio, at_most
+    )
+
+
+@dataclass
+class TopologyBootstrap:
+    """Stability of a small-n topology verdict under resampling of the prompt
+    templates that produced each item's point."""
+
+    n_boot: int
+    n_templates: int
+    closure_ratio: float  # on the full template set
+    closure_ratio_ci: tuple[float, float]  # bootstrap percentile interval
+    order_p_value: float  # on the full template set
+    frac_order_significant: float  # bootstraps with order p <= alpha
+    frac_closure_below: float  # bootstraps with closure_ratio < closure_threshold
+    alpha: float
+    closure_threshold: float
+
+
+def bootstrap_topology(
+    instance_points: Any,
+    n_items: int,
+    n_templates: int,
+    *,
+    order: Any | None = None,
+    n_boot: int = 500,
+    alpha: float = 0.05,
+    closure_threshold: float = 1.5,
+    ci: float = 0.95,
+    seed: int = 0,
+    max_exhaustive: int = 9,
+) -> TopologyBootstrap:
+    """Bootstrap :func:`cyclic_order_test` over prompt templates.
+
+    ``instance_points`` is ``(n_items * n_templates, d)`` laid out items-major
+    (item 0's templates, then item 1's, ...), the layout the extraction harness
+    produces. Each replicate resamples the templates with replacement, averages
+    per item, and re-runs the ordering test. A weekday "circle" that is cyclic
+    on the full template set but closes in only a third of the replicates is a
+    fragile verdict, and this is what says so.
+    """
+    x = _as_2d("instance_points", instance_points)
+    if x.shape[0] != n_items * n_templates:
+        raise ValueError(
+            f"expected {n_items} items x {n_templates} templates = "
+            f"{n_items * n_templates} rows, got {x.shape[0]}"
+        )
+    if n_templates < 2:
+        raise ValueError("bootstrap over templates needs at least 2 templates")
+    grid = x.reshape(n_items, n_templates, x.shape[1])
+    full = cyclic_order_test(grid.mean(axis=1), order=order, max_exhaustive=max_exhaustive)
+
+    rng = np.random.default_rng(seed)
+    closures = np.empty(n_boot)
+    sig = 0
+    below = 0
+    for b in range(n_boot):
+        pick = rng.integers(0, n_templates, size=n_templates)
+        pts = grid[:, pick, :].mean(axis=1)
+        t = cyclic_order_test(pts, order=order, max_exhaustive=max_exhaustive, seed=b)
+        closures[b] = t.closure_ratio
+        sig += t.p_value <= alpha
+        below += t.closure_ratio < closure_threshold
+    lo, hi = np.quantile(closures, [(1 - ci) / 2, 1 - (1 - ci) / 2])
+    return TopologyBootstrap(
+        n_boot,
+        n_templates,
+        full.closure_ratio,
+        (float(lo), float(hi)),
+        full.p_value,
+        sig / n_boot,
+        below / n_boot,
+        alpha,
+        closure_threshold,
+    )
+
+
+def bonferroni(p_value: float, n_comparisons: int) -> float:
+    """Look-elsewhere correction for a verdict picked from ``n_comparisons``
+    layer (pairs). Matching every layer of a 12-layer model against every layer
+    of a 6-layer one is 72 comparisons; the notes' own §1.1 warns that the max
+    over them inflates. Pre-register the layers instead, and pass how many."""
+    if n_comparisons < 1:
+        raise ValueError("n_comparisons must be >= 1")
+    return float(min(1.0, p_value * n_comparisons))

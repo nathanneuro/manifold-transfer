@@ -1,0 +1,87 @@
+diff --git a/crates/gam-models/src/bms/custom_family_impl.rs b/crates/gam-models/src/bms/custom_family_impl.rs
+index 993049b..aa162a4 100644
+--- a/crates/gam-models/src/bms/custom_family_impl.rs
++++ b/crates/gam-models/src/bms/custom_family_impl.rs
+@@ -710,9 +710,15 @@ impl CustomFamily for BernoulliMarginalSlopeFamily {
+     // policy and multistart state are numerics-only and stay out.
+     fn persistent_warm_start_fingerprint(
+         &self,
+-        _specs: &[ParameterBlockSpec],
+-        _options: &BlockwiseFitOptions,
++        specs: &[ParameterBlockSpec],
++        options: &BlockwiseFitOptions,
+     ) -> Option<String> {
++        if !crate::marginal_slope_shared::parameter_block_specs_match_rows(specs, self.y.len())
++            || !options.inner_tol.is_finite()
++            || options.inner_tol <= 0.0
++        {
++            return None;
++        }
+         let mut hasher = gam_runtime::warm_start::Fingerprinter::new();
+         hasher.write_str("bernoulli-marginal-slope-family");
+         hasher.write_f64_array1(&self.y);
+diff --git a/crates/gam-models/src/fit_orchestration/drivers/spatial_optimization.rs b/crates/gam-models/src/fit_orchestration/drivers/spatial_optimization.rs
+index 2aff442..00d8482 100644
+--- a/crates/gam-models/src/fit_orchestration/drivers/spatial_optimization.rs
++++ b/crates/gam-models/src/fit_orchestration/drivers/spatial_optimization.rs
+@@ -6420,7 +6420,7 @@ fn try_exact_joint_latent_coord_optimization(
+     // search actually starts from.
+     let direct_slots =
+         latent_coord_direct_hyper_slots(latent.values.id_mode(), latent.values.latent_dim());
+-    debug_assert_eq!(direct_slots.len(), direct_hypers.len());
++    assert_eq!(direct_slots.len(), direct_hypers.len());
+ 
+     struct LatentJointContext<'d> {
+         rho_dim: usize,
+diff --git a/crates/gam-models/src/survival/latent/survival/tests_interval_warm_surrogate_3711.rs b/crates/gam-models/src/survival/latent/survival/tests_interval_warm_surrogate_3711.rs
+index 34edd29..d5e18af 100644
+--- a/crates/gam-models/src/survival/latent/survival/tests_interval_warm_surrogate_3711.rs
++++ b/crates/gam-models/src/survival/latent/survival/tests_interval_warm_surrogate_3711.rs
+@@ -130,7 +130,12 @@ fn assert_finite_fit(fit: &LatentSurvivalTermFitResult, case: &str) {
+ /// interval fit.
+ #[test]
+ fn an_all_interval_fit_seeds_from_the_lower_endpoint_surrogate_3711() {
+-    let fit = fit_interval_fixture(|_| {})
++    let fit = fit_interval_fixture(|spec| {
++        assert!(
++            spec.event_target.iter().all(|&code| code == 0),
++            "#3711: the all-interval fixture must carry no exact-failure rows"
++        );
++    })
+         .expect("#3711: an all-interval latent fit must converge from its surrogate seed");
+     assert_finite_fit(&fit, "all-interval");
+ }
+diff --git a/crates/gam-problem/src/penalty_coordinate.rs b/crates/gam-problem/src/penalty_coordinate.rs
+index 8e52b9d..609e08c 100644
+--- a/crates/gam-problem/src/penalty_coordinate.rs
++++ b/crates/gam-problem/src/penalty_coordinate.rs
+@@ -1396,6 +1396,6 @@ mod tests {
+         let coord =
+             PenaltyCoordinate::from_dense_root_with_offset(array![[1.0_f64, 0.0]], array![0.5]);
+         let n = 1.0_f64 / 2.0_f64.sqrt();
+-        let _ = coord.project_out_null_directions(array![[n], [n]].view());
++        coord.project_out_null_directions(array![[n], [n]].view());
+     }
+ }
+diff --git a/crates/gam-solve/src/rho_optimizer/stratum_boundary_2939_tests.rs b/crates/gam-solve/src/rho_optimizer/stratum_boundary_2939_tests.rs
+index 4b2cd91..8d0bd6e 100644
+--- a/crates/gam-solve/src/rho_optimizer/stratum_boundary_2939_tests.rs
++++ b/crates/gam-solve/src/rho_optimizer/stratum_boundary_2939_tests.rs
+@@ -502,7 +502,7 @@ fn feasible_unaccepted_probe_ends_refusal_streak_without_granting_progress() {
+     let resolution = guard.value_resolution(value, &Default::default());
+     let best = guard.best_value();
+     let accepted = guard.accepted_iters();
+-    let _ = guard.observe_off_stratum(
++    guard.observe_off_stratum(
+         &refused, KEPT_RANK_INSIDE, value, resolution, ADAPTING_DECREASE,
+     );
+     assert_eq!(guard.off_stratum_streak(), 1);
+@@ -515,7 +515,7 @@ fn feasible_unaccepted_probe_ends_refusal_streak_without_granting_progress() {
+     assert_eq!(publication.value, best);
+     assert_eq!(publication.iterations, accepted);
+     assert!(publication.rank_boundary.is_none());
+-    let _ = guard.observe_off_stratum(
++    guard.observe_off_stratum(
+         &refused, KEPT_RANK_INSIDE, value, resolution, ADAPTING_DECREASE,
+     );
+     assert_eq!(guard.off_stratum_streak(), 1);

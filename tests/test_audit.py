@@ -14,16 +14,26 @@ from manifold_transfer.audit import (
 T = np.linspace(0.05, 1.0, 80)
 
 
+def _obs(coords, scale=1e-3, seed=0):
+    """Estimated chart coordinates, not an exact function of the source: gamfit's
+    stochastic-pairs REML smooth refuses a design that interpolates its response
+    exactly ("profiled residual not resolvably positive"), so every synthetic
+    target carries a little coordinate-estimation scatter, as real ones do."""
+    rng = np.random.default_rng(seed)
+    coords = np.asarray(coords, dtype=float)
+    return coords + scale * rng.normal(size=coords.shape)
+
+
 def test_integrity_map_flags_warp_and_break_but_not_baseline():
     concepts = {
         # near-identity teacher->student maps: faithfully preserved, low defect.
-        "good1": (T, T + 0.02 * np.sin(3.0 * T)),
-        "good2": (T, T + 0.03 * np.sin(2.0 * T)),
-        "good3": (T, 0.98 * T + 0.01),
+        "good1": (T, _obs(T + 0.02 * np.sin(3.0 * T), seed=1)),
+        "good2": (T, _obs(T + 0.03 * np.sin(2.0 * T), seed=2)),
+        "good3": (T, _obs(0.98 * T + 0.01, seed=3)),
         # strong monotone warp: topology intact but distortion >> baseline.
-        "warped": (T, T**1.8),
+        "warped": (T, _obs(T**1.8, seed=4)),
         # non-monotone: a fold -> topology broken (collapse-like).
-        "broken": (T, 0.5 + 0.4 * np.sin(4.0 * T)),
+        "broken": (T, _obs(0.5 + 0.4 * np.sin(4.0 * T), seed=5)),
     }
     im = integrity_map(concepts, baseline=["good1", "good2", "good3"])
 
@@ -49,7 +59,7 @@ def test_integrity_map_rejects_unknown_baseline():
 
 def test_provenance_identifies_closest_parent():
     # student tracks parent A (near-identity); parent C is a bigger warp.
-    student = T + 0.02 * np.sin(3.0 * T)
+    student = _obs(T + 0.02 * np.sin(3.0 * T), seed=6)
     concepts = {
         "x": {"student": student, "teachers": {"A": T, "C": T**0.4}},
     }
@@ -61,7 +71,7 @@ def test_provenance_identifies_closest_parent():
 
 def test_provenance_neither_when_no_parent_route_survives():
     # student is folded relative to either monotone parent: matches neither.
-    student = 0.5 + 0.4 * np.sin(4.0 * T)
+    student = _obs(0.5 + 0.4 * np.sin(4.0 * T), seed=7)
     concepts = {
         "x": {"student": student, "teachers": {"A": T, "C": T**2}},
     }

@@ -8,7 +8,7 @@ distorted" (always yes) but "distorted more than the distill's own characteristi
 baseline, or in a way that breaks topology."
 
 This module composes the existing primitives — per-concept teacher→student
-transports via :func:`gamfit.fit_transport`, read out through ``isometry_defect``
+transports via gamfit's ``fit_transport`` (``gamfit.sae.fit_transport`` in current gamfit), read out through ``isometry_defect``
 (metric distortion magnitude) and ``topology_preserved`` (collapse/fold) — against
 a known-good baseline. It does **not** fit the manifolds; the caller supplies, per
 concept, the matched chart coordinates in each model. Producing that matching from
@@ -29,19 +29,12 @@ from typing import Any, Mapping
 
 import numpy as np
 
-from .transport_law import _as_1d
-
-try:
-    import gamfit
-except ImportError as exc:  # pragma: no cover - environment wiring
-    raise ImportError(
-        "manifold-transfer requires gamfit; run `uv sync` so it is installed."
-    ) from exc
+from .transport_law import _as_1d, _fit_transport
 
 
 def _transport_defect(coords_from: Any, coords_to: Any, topology: str) -> tuple[float, bool]:
     """Fit the teacher→student transport and read out (isometry_defect, preserved)."""
-    t = gamfit.fit_transport(
+    t = _fit_transport()(
         _as_1d("coords_from", coords_from),
         _as_1d("coords_to", coords_to),
         topology,
@@ -189,7 +182,7 @@ def _route_distortion_field(
 
     Returns ``(s, distortion)`` sorted by ascending student coordinate `s`.
     """
-    h = gamfit.fit_transport(
+    h = _fit_transport()(
         _as_1d("parent_coords", parent_coords),
         _as_1d("student_coords", student_coords),
         topology,

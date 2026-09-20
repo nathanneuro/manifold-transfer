@@ -41,10 +41,13 @@ present. The novel, library-shaped gap is narrow and specific (see §A).
   κ-jets (`constant_curvature.rs:~644`) give exact curvature derivatives for the fit.
 - **GAP (library) — the actual novelty of the notes.** `fit_layer_transport` fits `φ`
   from **paired anchors of one specific concept** (`coords_from`,`coords_to`). It does
-  **not** decompose `φ = g_B ∘ g_A⁻¹` where `g_A`,`g_B` regress local spacing on a
-  *both-model-available, concept-independent predictor* (output entropy / neighbor
-  confusability). That decomposition is what lets you predict `φ_x` for a **novel** concept
-  with no paired B-anchors, from its confusability profile alone. See §A.
+  **not** decompose `φ = g_B ∘ g_A⁻¹` where `g_A`,`g_B` relate local spacing to a
+  *both-model-available, concept-independent predictor*. Notes §2.1 fixes that predictor
+  (the Fisher-Rao distance between adjacent items' next-token distributions) and the
+  expected form (`spacing = κ · d_FR`, one scale per model), so the composed warp is
+  `√(I_B/I_A)` with no free function; the monotone smooth is the fallback. That is what
+  lets you predict `φ_x` for a **novel** concept with no paired B-anchors, from B's
+  output distributions alone. See §A.
 
 ### §3 Fill gaps from sparse anchors (white-box A, B; few B-points of *x*)
 - **HAVE** — fold check, topology check, and isometry/spacing residual are already the
@@ -87,7 +90,7 @@ present. The novel, library-shaped gap is narrow and specific (see §A).
   interference / seam maps are *compositions* of `align` + per-parent `fit_layer_transport`
   + the certificate battery. Worth a `scripts/` harness and possibly a small `gamfit`
   convenience wrapper, but not new core math.
-- **GAP (library, optional, §6.5)** — a neighbor/topology-preserving **distillation
+- **GAP (library, optional, §6.6)** — a neighbor/topology-preserving **distillation
   objective** (vs. post-hoc audit) is the one open research lever the papers don't test; a
   real but larger piece, only if the project moves toward *designing* B.
 
@@ -97,11 +100,15 @@ present. The novel, library-shaped gap is narrow and specific (see §A).
 
 Everything else is either HAVE or experiment-shaped. The load-bearing new primitive is:
 
-> Fit `g_A`, `g_B` as **monotone 1-D smooths of local spacing on a concept-independent
-> predictor** (output-distribution entropy / neighbor confusability), *separately per
-> model*, across the known concepts. Compose `φ_x ≈ g_B ∘ g_A⁻¹` and evaluate it on a
-> novel concept *x* from *x*'s confusability profile — which is directly measurable in B
-> (white-box) without any paired B-anchors for *x*.
+> Fit `g_A`, `g_B` as laws of local spacing on the concept-independent predictor — the
+> **Fisher-Rao distance between adjacent items' next-token distributions** (not a scalar
+> entropy, which ignores *which* neighbours are confusable) — *separately per model*,
+> across the known concepts. Expected form: linear through the origin with one scale
+> `κ` per model (Manifold Steering's Hellinger isometry); fit the monotone 1-D smooth only
+> as the fallback when linearity is rejected. Compose `φ_x ≈ g_B ∘ g_A⁻¹` — under the
+> linear form simply `√(I_B/I_A)` — and evaluate it on a novel concept *x* from B's output
+> distributions on *x*'s items, which are directly measurable (white-box) without any
+> paired B-anchors for *x*.
 
 Why this is the right first build:
 - It is the notes' actual novelty (§2), and it unlocks §3 (knots from the predicted law)
@@ -132,7 +139,9 @@ would duplicate the certificate/transport/steer machinery that already exists.
 ## Open questions for the maintainer
 1. Should the concept-independent transport law (§A) live in Rust core (alongside
    `fit_layer_transport`) or in `gamfit` (it's a thin fit over existing smooths)?
-2. Is the confusability predictor (output entropy on *x*-adjacent tokens) in scope for
-   gam to compute, or supplied by the caller? gam has no token/LLM I/O today.
+2. Is the predictor (Fisher-Rao distance between adjacent items' next-token
+   distributions) in scope for gam to compute, or supplied by the caller? gam has no
+   token/LLM I/O today; `manifold_transfer.fisher` computes it in numpy from the caller's
+   distributions, which keeps gam free of it.
 3. Topology discovery (§1 gap): build a mutual-kNN/intrinsic-dim estimator in-repo, or keep
    it external (ParamRepulsor) and have gam consume a proposed topology?
