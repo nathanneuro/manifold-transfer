@@ -31,11 +31,6 @@ import numpy as np
 from .discovery import cyclic_order_test
 
 
-def _path_length(points: np.ndarray, order: np.ndarray) -> float:
-    p = points[order]
-    return float(np.linalg.norm(np.diff(p, axis=0), axis=1).sum())
-
-
 @dataclass
 class OpenOrderTest:
     path_length: float
@@ -58,20 +53,19 @@ def open_order_test(
     if x.ndim != 2 or x.shape[0] < 3:
         raise ValueError("item_points must be (n_items >= 3, d)")
     n = x.shape[0]
-    observed = _path_length(x, np.arange(n))
+    sq = np.sum(x * x, axis=1)
+    dist = np.sqrt(np.maximum(sq[:, None] + sq[None, :] - 2 * x @ x.T, 0.0))
+    observed = float(dist[np.arange(n - 1), np.arange(1, n)].sum())
     if n <= max_exhaustive:
-        count = at_most = 0
-        for perm in itertools.permutations(range(n)):
-            if perm[0] > perm[-1]:
-                continue
-            count += 1
-            at_most += _path_length(x, np.array(perm)) <= observed + 1e-12
-        return OpenOrderTest(observed, at_most / count, count, True)
-    rng = np.random.default_rng(seed)
-    at_most = 1
-    for _ in range(n_samples - 1):
-        at_most += _path_length(x, rng.permutation(n)) <= observed + 1e-12
-    return OpenOrderTest(observed, at_most / n_samples, n_samples, False)
+        perms = np.array([p for p in itertools.permutations(range(n)) if p[0] < p[-1]])
+        exhaustive = True
+    else:
+        rng = np.random.default_rng(seed)
+        perms = np.vstack([np.arange(n), np.argsort(rng.random((n_samples - 1, n)), axis=1)])
+        exhaustive = False
+    lengths = dist[perms[:, :-1], perms[:, 1:]].sum(axis=1)
+    at_most = int(np.sum(lengths <= observed + 1e-12))
+    return OpenOrderTest(observed, at_most / len(perms), len(perms), exhaustive)
 
 
 @dataclass
@@ -92,6 +86,7 @@ def topology_onset(
     topology: str = "circle",
     alpha: float = 0.05,
     seed: int = 0,
+    n_samples: int = 5000,
 ) -> TopologyOnset:
     """Ordering null on the item points restricted to the top-``k`` coordinates of
     ``ranking``, for each ``k`` in ``ks``. ``item_points`` is ``(n_items, d)`` in
@@ -109,10 +104,10 @@ def topology_onset(
     for i, k in enumerate(ks_arr):
         sub = x[:, rank[:k]]
         if topology == "circle":
-            t = cyclic_order_test(sub, seed=seed)
+            t = cyclic_order_test(sub, seed=seed, n_samples=n_samples)
             ps[i], closures[i] = t.p_value, t.closure_ratio
         elif topology == "interval":
-            ps[i] = open_order_test(sub, seed=seed).p_value
+            ps[i] = open_order_test(sub, seed=seed, n_samples=n_samples).p_value
         else:
             raise ValueError(f"unknown topology {topology!r}")
     onset = None

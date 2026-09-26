@@ -142,3 +142,11 @@ def test_landmark_bulge():
     bumped[marks] += 0.5
     assert landmark_bulge(bumped, marks, n_null=2000).p_value < 0.01
     assert landmark_bulge(ls, marks, n_null=2000).p_value > 0.01
+
+
+def test_roughness_with_gaps_matches_dense():
+    g = _fourier_curve(alpha=2.0)
+    keep = np.sort(np.random.default_rng(6).choice(300, size=240, replace=False))
+    dense = roughness(g)
+    gappy = roughness(g[keep], positions=keep)
+    assert abs(dense.hurst - gappy.hurst) < 0.1

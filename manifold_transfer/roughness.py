@@ -54,30 +54,54 @@ def _halves(grid: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.
 
 
 def structure_function(
-    grid: Any, *, max_lag: int | None = None, topology: str = "interval", n_splits: int = 20, seed: int = 0
+    grid: Any,
+    *,
+    max_lag: int | None = None,
+    topology: str = "interval",
+    positions: Any | None = None,
+    n_splits: int = 20,
+    seed: int = 0,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Noise-corrected ``S(Δ)`` for ``Δ = 1..max_lag``. ``grid`` is
-    ``(n_items, n_templates, dim)`` in the concept's order (dense items)."""
+    ``(n_items, n_templates, dim)`` in the concept's order (dense items).
+
+    ``positions`` (integers, increasing) gives each item's value when the kept
+    items have gaps — e.g. only the years that are one token — and ``Δ`` is then
+    a difference of values, averaged over the pairs that realise it."""
     g = np.asarray(grid, dtype=np.float64)
     n = g.shape[0]
-    max_lag = max_lag or n // 4
+    pos = np.arange(n) if positions is None else np.asarray(positions, dtype=int)
+    if pos.shape != (n,) or np.any(np.diff(pos) <= 0):
+        raise ValueError("positions must be strictly increasing, one per item")
+    span = int(pos[-1] - pos[0] + 1)
+    max_lag = max_lag or max(4, span // 4)
+    if topology == "circle" and positions is not None:
+        raise ValueError("positions with gaps are supported for open concepts only")
     rng = np.random.default_rng(seed)
     lags = np.arange(1, max_lag + 1)
+    pairs = []
+    for lag in lags:
+        if topology == "circle":
+            i = np.arange(n)
+            pairs.append((i, (i + lag) % n))
+        else:
+            where = {int(v): k for k, v in enumerate(pos)}
+            i = np.array([k for k, v in enumerate(pos) if int(v) + lag in where], dtype=int)
+            j = np.array([where[int(pos[k]) + lag] for k in i], dtype=int)
+            pairs.append((i, j))
     s = np.zeros(lags.size)
     for _ in range(n_splits):
         ma, mb = _halves(g, rng)
-        for k, lag in enumerate(lags):
-            if topology == "circle":
-                da = np.roll(ma, -lag, axis=0) - ma
-                db = np.roll(mb, -lag, axis=0) - mb
+        for k, (i, j) in enumerate(pairs):
+            if i.size:
+                s[k] += np.mean(np.sum((ma[j] - ma[i]) * (mb[j] - mb[i]), axis=1))
             else:
-                da, db = ma[lag:] - ma[:-lag], mb[lag:] - mb[:-lag]
-            s[k] += np.mean(np.sum(da * db, axis=1))
+                s[k] = np.nan
     return lags, s / n_splits
 
 
 def _loglog_slope(x: np.ndarray, y: np.ndarray) -> float:
-    ok = (x > 0) & (y > 0)
+    ok = (x > 0) & (y > 0) & np.isfinite(y)
     if ok.sum() < 3:
         return float("nan")
     return float(np.polyfit(np.log(x[ok]), np.log(y[ok]), 1)[0])
@@ -143,8 +167,10 @@ class Roughness:
     spectrum: np.ndarray
 
 
-def roughness(grid: Any, *, topology: str = "interval", seed: int = 0) -> Roughness:
-    lags, s = structure_function(grid, topology=topology, seed=seed)
+def roughness(
+    grid: Any, *, topology: str = "interval", positions: Any | None = None, seed: int = 0
+) -> Roughness:
+    lags, s = structure_function(grid, topology=topology, positions=positions, seed=seed)
     spec = cv_pca_spectrum(grid, seed=seed)
     h = hurst_exponent(lags, s)
     a = power_law_exponent(spec)
