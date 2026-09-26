@@ -16,7 +16,13 @@ Readouts per (model, concept):
 - behavioural onset: the budget at which the hard-mask loss falls below 10% of
   its all-patched value.
 - support overlap: weekdays vs months (one "calendar" substrate or two?) and
-  digits vs letters, against the k²/d chance level.
+  digits vs letters, against the k²/d chance level; and, because DistilGPT2
+  was initialised from GPT-2 (shared embeddings, hence a shared residual
+  basis), teacher vs student per concept — did distillation keep the same
+  privileged coordinates?
+- behavioural control: the hard-mask budget curve under random rankings; the
+  MAttr ranking is only informative where its area under the loss-vs-log-k
+  curve beats them.
 Surprise: the distill's k*/d is larger (it spreads the loop over more of a
 narrower stream), or the geometric onset lags the behavioural one (a loop that
 is present but causally idle, or vice versa).
@@ -51,20 +57,35 @@ def analyse(data, rankings, curves=None, *, n_random: int = 20, n_samples: int =
                      "random_onset_fraction_median": float(np.nanmedian(rand)) if np.any(np.isfinite(rand)) else None,
                      "frac_random_no_onset": float(np.mean(~np.isfinite(rand)))}
             if curves and name in curves.get(model, {}):
-                cks, loss = curves[model][name]
+                cks, loss, *rand_curves = curves[model][name]
                 below = np.nonzero(np.asarray(loss) <= 0.1 * np.max(loss))[0]
                 entry["behavioural_onset_k"] = int(cks[below[0]]) if below.size else None
                 entry["budget_curve"] = {"ks": cks, "loss": loss}
+                if rand_curves:
+                    logk = np.log(np.asarray(cks, dtype=float))
+                    auc = float(np.trapezoid(loss, logk))
+                    rand_auc = [float(np.trapezoid(rc, logk)) for rc in rand_curves[0]]
+                    entry["auc_mattr"] = auc
+                    entry["auc_random"] = rand_auc
+                    entry["auc_ratio"] = auc / float(np.mean(rand_auc))
             out["onset"][f"{model}/{name}"] = entry
         pairs = [("weekdays", "months"), ("digits", "letters"), ("weekdays", "digits")]
         for a, b in pairs:
             if a in per_c and b in per_c:
                 ov = support_overlap(per_c[a], per_c[b], budget_grid(len(per_c[a]), 12))
                 out["overlap"][f"{model}/{a}~{b}"] = {"ks": ov.ks, "jaccard": ov.jaccard, "chance": ov.chance}
+    models = list(rankings)
+    if len(models) == 2:
+        ra, rb = rankings[models[0]], rankings[models[1]]
+        for name in ra:
+            if name in rb and len(ra[name]) == len(rb[name]):
+                ov = support_overlap(ra[name], rb[name], budget_grid(len(ra[name]), 12))
+                out["overlap"][f"{models[0]}~{models[1]}/{name}"] = {
+                    "ks": ov.ks, "jaccard": ov.jaccard, "chance": ov.chance}
     return out
 
 
-def main(steps: int = 500) -> None:
+def main(steps: int = 500, n_random_curves: int = 3) -> None:
     from manifold_transfer.models.extract import resolve_layer
     from manifold_transfer.models.matryoshka import budget_curve, concept_interchange_loss, learn_scores
 
@@ -79,12 +100,18 @@ def main(steps: int = 500) -> None:
             res = learn_scores(hidden, loss_fn, steps=steps)
             ks = budget_grid(hidden, 16)
             rankings.setdefault(model, {})[name] = res.ranking
-            curves.setdefault(model, {})[name] = (ks, budget_curve(loss_fn, res.ranking, ks))
+            rng = np.random.default_rng(1)
+            rand = [budget_curve(loss_fn, rng.permutation(hidden), ks) for _ in range(n_random_curves)]
+            curves.setdefault(model, {})[name] = (ks, budget_curve(loss_fn, res.ranking, ks), rand)
             print(f"[mattr] {model}/{name}: trained {steps} steps, final loss {np.mean(res.loss_log[-50:]):.4f}")
     out = analyse(data, rankings, curves)
     for key, r in out["onset"].items():
         print(f"[onset] {key:20s} k*={r['onset_k']} ({r['onset_fraction']:.3f} of d={r['d']}) "
-              f"behavioural k={r.get('behavioural_onset_k')} random median={r['random_onset_fraction_median']}")
+              f"random-ranking onset median={r['random_onset_fraction_median']} "
+              f"behavioural AUC mattr/random={r.get('auc_ratio', float('nan')):.3f}")
+    for key, r in out["overlap"].items():
+        print(f"[overlap] {key:28s} jaccard@k={list(r['ks'][:6])}: {np.round(r['jaccard'][:6], 2).tolist()} "
+              f"chance {np.round(r['chance'][:6], 3).tolist()}")
     save("e01_matryoshka_support", {"rankings": rankings, **out})
 
 

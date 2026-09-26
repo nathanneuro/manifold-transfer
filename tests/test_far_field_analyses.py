@@ -68,10 +68,13 @@ def _mod(name):
 def test_e01(standard):
     rng = np.random.default_rng(2)
     rankings = {m: {c: rng.permutation(16) for c in ("weekdays", "months", "digits", "letters")} for m in standard}
-    curves = {m: {"weekdays": (np.array([2, 4, 16]), np.array([1.0, 0.5, 0.01]))} for m in standard}
+    curves = {m: {"weekdays": (np.array([2, 4, 16]), np.array([1.0, 0.5, 0.01]),
+                               [np.array([1.0, 0.9, 0.01])])} for m in standard}
     out = _mod("e01_matryoshka_support").analyse(standard, rankings, curves, n_random=2, n_samples=300)
     assert "gpt2/weekdays" in out["onset"] and out["onset"]["gpt2/weekdays"]["behavioural_onset_k"] == 16
     assert "gpt2/weekdays~months" in out["overlap"]
+    assert "gpt2~distilgpt2/weekdays" in out["overlap"]
+    assert out["onset"]["gpt2/weekdays"]["auc_ratio"] < 1
 
 
 def test_e02(standard):
