@@ -42,7 +42,10 @@ estimator caveat, it is stated next to the number.
    - The log-likelihood-variance distance tracks the teacher→student warp residual at mid
      depth (ρ = 0.48, p = 0.0002); KL is weaker (ρ = 0.24, p = 0.046) (E03b).
    - At the final layer, Fisher-Rao wins cleanly.
-5. **Dense concept curves are not rectifiable at item resolution.**
+5. **Distillation kept the teacher's privileged residual coordinates.** The top Matryoshka
+   supports for digits and letters overlap 20–100× above chance between teacher and student.
+   Behavioural position is still spread across most of the stream. (E01)
+6. **Dense concept curves are not rectifiable at item resolution.**
    - Hurst exponent H ≈ 0.12–0.17: rougher than a Wiener spiral.
    - Every spectrum exponent is below the smoothness threshold.
    - The implied κ grows with lag, so "spacing = κ · d_FR" is a statement at one resolution.
@@ -267,7 +270,49 @@ depth. That is the same tail-weighting E03 finds by a different route.
 
 ## E01 — Matryoshka support
 
-*Running at the time of writing; see `results/e01_matryoshka_support.json` once present.*
+MAttr was trained with 500 steps of the sigmoid top-k mask over the 768 mid-depth residual
+coordinates, using the Fisher-Rao interchange loss between two items of the same concept
+under the same template.
+
+**Onset.**
+
+| model / concept | topology onset k* | random-ranking onset (median) | behavioural AUC, MAttr / random |
+|---|---|---|---|
+| GPT-2 weekdays | 2 | 3 | 0.78 |
+| GPT-2 months | 2 | 6 | 0.84 |
+| GPT-2 digits | 2 | 3 | 0.82 |
+| GPT-2 letters | 6 | 27 | 0.91 |
+| DistilGPT2 weekdays | 2 | 6 | 0.76 |
+| DistilGPT2 months | 2 | 6 | 0.81 |
+| DistilGPT2 digits | 3 | 2 | 0.79 |
+| DistilGPT2 letters | 12 | 31 | 0.91 |
+
+- **Topology onset is not informative for weekdays, months or digits.** Almost any two to six
+  random coordinates already pass the small-n ordering null. The ordering is spread across the
+  whole stream, which is one more way of saying the ordering null is weak.
+- **Letters are the exception.** MAttr concentrates their order 3–4× better than random.
+- **The behavioural ranking beats random, but only modestly.** The loss-vs-log-k area is 76–91%
+  of the random-ranking value. The patched output reaches the unpatched one only near full
+  width, so no small support carries a concept's behavioural position.
+
+**Support overlap.** Jaccard of the top-k sets; chance is ≤ 0.02 at these k.
+
+| overlap | k = 2 | 3 | 6 | 10 | 17 | 30 |
+|---|---|---|---|---|---|---|
+| GPT-2 ~ DistilGPT2, digits | 0.33 | 0.50 | 0.33 | 0.43 | 0.42 | 0.40 |
+| GPT-2 ~ DistilGPT2, letters | 0 | 0.20 | 0.33 | 0.33 | 0.48 | 0.54 |
+| GPT-2 ~ DistilGPT2, months | 0 | 0 | 0.09 | 0.18 | 0.26 | 0.22 |
+| GPT-2 ~ DistilGPT2, weekdays | 0 | 0 | 0 | 0.18 | 0.13 | 0.18 |
+| GPT-2, digits ~ letters | 0.33 | 0.20 | 0.20 | 0.18 | 0.13 | 0.18 |
+| DistilGPT2, digits ~ letters | 0 | 0 | 0 | 0.05 | 0.10 | 0.05 |
+| either model, weekdays ~ months | 0 | 0 | 0 | 0 | 0–0.03 | 0.02–0.05 |
+
+- **Distillation kept the teacher's privileged coordinates.** For digits and letters it shares
+  20–100× chance of the same top coordinates, e.g. 393, 526, 549 and 679 for digits. This is
+  possible because the student inherited GPT-2's embeddings and hence its residual basis.
+- **There is no shared "calendar" support.** Weekdays and months use disjoint top coordinates
+  in both models.
+- **GPT-2's digits and letters share top coordinates; DistilGPT2 separated them.**
 
 ---
 
