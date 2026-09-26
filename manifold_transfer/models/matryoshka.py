@@ -160,11 +160,12 @@ def fisher_rao_torch(logp: "torch.Tensor", logq: "torch.Tensor") -> "torch.Tenso
 
 
 def concept_interchange_loss(
-    model_name: str,
+    model_name,
     items: Sequence[str],
     templates: Sequence[str],
     *,
     layer: int,
+    tokenizer=None,
     batch_size: int = 16,
     seed: int = 0,
     device: str | None = None,
@@ -181,6 +182,9 @@ def concept_interchange_loss(
     the mean Fisher-Rao distance of the patched next-token distribution from the
     unpatched base one. Returns ``(loss_fn, hidden_size)``.
 
+    ``model_name`` may also be an already-loaded causal LM, in which case pass
+    its ``tokenizer`` too.
+
     Only the last token is patched, so every item must be one token under the
     template or the patch lands on a partial word; the caller's concept lists
     are chosen that way (and the base/source prompts share their prefix).
@@ -191,11 +195,15 @@ def concept_interchange_loss(
         raise ValueError("layer indexes hidden_states; patch a block output (layer >= 1)")
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
-    tok = AutoTokenizer.from_pretrained(model_name)
+    if isinstance(model_name, str):
+        tok = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForCausalLM.from_pretrained(model_name)
+    else:
+        model, tok = model_name, tokenizer
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
     tok.padding_side = "right"
-    model = AutoModelForCausalLM.from_pretrained(model_name).to(device).eval()
+    model = model.to(device).eval()
     for p in model.parameters():
         p.requires_grad_(False)
     blocks = _blocks(model)

@@ -118,6 +118,27 @@ def extract_last_token_activations_and_distributions(
         .eval()
     )
 
+    return forward_collect(
+        model, tokenizer, texts, layers=layers, device=device,
+        batch_size=batch_size, max_length=max_length,
+    )
+
+
+def forward_collect(
+    model,
+    tokenizer,
+    texts: Sequence[str],
+    *,
+    layers: Sequence[int] = (-1,),
+    device: str = "cpu",
+    batch_size: int = 32,
+    max_length: int = 64,
+) -> tuple[dict[int, np.ndarray], np.ndarray]:
+    """The body of :func:`extract_last_token_activations_and_distributions` for
+    an already-loaded causal LM (e.g. a weight-interpolated one). The tokenizer
+    must pad on the right."""
+    import torch
+
     acts: dict[int, list[np.ndarray]] = {layer: [] for layer in layers}
     probs: list[np.ndarray] = []
     texts = list(texts)
@@ -131,7 +152,7 @@ def extract_last_token_activations_and_distributions(
             max_length=max_length,
         ).to(device)
         with torch.no_grad():
-            result = model(**enc)
+            result = model(**enc, output_hidden_states=True)
         last = enc["attention_mask"].sum(dim=1) - 1
         rows = torch.arange(last.size(0), device=last.device)
         for layer in layers:
