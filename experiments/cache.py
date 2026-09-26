@@ -41,7 +41,7 @@ class ConceptData:
     topology: str
     n_templates: int
     acts: dict[str, np.ndarray]  # depth tag -> (n_items * n_templates, hidden)
-    probs: np.ndarray | None  # (n_items * n_templates, vocab), rows sum to 1
+    probs: np.ndarray | None  # (n_items * n_templates, vocab) float32, rows sum to 1
 
     @property
     def n_items(self) -> int:
@@ -63,7 +63,7 @@ class ConceptData:
 
     def item_probs(self) -> np.ndarray:
         """Template-averaged next-token distribution per item, ``(n_items, vocab)``."""
-        p = self.prob_grid().mean(axis=1)
+        p = self.prob_grid().mean(axis=1, dtype=np.float64)
         return p / p.sum(axis=1, keepdims=True)
 
 
@@ -82,11 +82,17 @@ def extract(
 ) -> Path:
     """Run ``model`` over every (item, template) prompt of every concept and write
     the cache file. Requires the ``models`` extra."""
-    from manifold_transfer.models.extract import (
-        extract_last_token_activations_and_distributions,
-        resolve_layer,
-    )
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
+    from manifold_transfer.models.extract import forward_collect, resolve_layer
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    tok = AutoTokenizer.from_pretrained(model)
+    if tok.pad_token is None:
+        tok.pad_token = tok.eos_token
+    tok.padding_side = "right"
+    lm = AutoModelForCausalLM.from_pretrained(model).to(device).eval()
     layers = {tag: resolve_layer(model, frac) for tag, frac in depths.items()}
     arrays: dict[str, np.ndarray] = {}
     meta: dict = {
@@ -97,9 +103,7 @@ def extract(
     }
     for name, (items, topo) in concepts.items():
         texts = [t.format(it) for it in items for t in templates]
-        acts, probs = extract_last_token_activations_and_distributions(
-            model, texts, layers=tuple(layers.values())
-        )
+        acts, probs = forward_collect(lm, tok, texts, layers=tuple(set(layers.values())), device=device)
         for tag, layer in layers.items():
             arrays[f"acts/{name}/{tag}"] = acts[layer].astype(np.float32)
         if keep_probs:
@@ -122,7 +126,9 @@ def load(model: str, set_name: str) -> dict[str, ConceptData]:
             acts = {tag: z[f"acts/{name}/{tag}"].astype(np.float64) for tag in meta["layers"]}
             probs = None
             if f"probs/{name}" in z.files:
-                p = z[f"probs/{name}"].astype(np.float64)
+                # float32, not float64: a dense concept's (n * T, 50257) block is
+                # already ~0.8 GB at single precision
+                p = z[f"probs/{name}"].astype(np.float32)
                 probs = p / p.sum(axis=1, keepdims=True)
             out[name] = ConceptData(info["items"], info["topology"], n_t, acts, probs)
     return out
