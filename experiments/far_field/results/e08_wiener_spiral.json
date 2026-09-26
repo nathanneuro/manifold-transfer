@@ -1,0 +1,102 @@
+{
+ "models": [
+  "gpt2",
+  "distilgpt2"
+ ],
+ "years": {
+  "gpt2/behaviour": {
+   "hurst": 0.0365032597577703,
+   "alpha": 2.204297752697209,
+   "smooth": false
+  },
+  "gpt2/mid": {
+   "hurst": 0.1634836911910477,
+   "alpha": 1.7201747220666654,
+   "alpha_threshold": 3.0,
+   "hurst_from_alpha": 0.3600873610333327,
+   "smooth": false,
+   "kappa_scale_slope": 0.12698043143327692,
+   "hurst_check": 0.1634836911910477
+  },
+  "gpt2/final": {
+   "hurst": 0.16877195916033996,
+   "alpha": 2.06295270388852,
+   "alpha_threshold": 3.0,
+   "hurst_from_alpha": 0.53147635194426,
+   "smooth": false,
+   "kappa_scale_slope": 0.13226869940256988,
+   "hurst_check": 0.16877195916033996
+  },
+  "distilgpt2/behaviour": {
+   "hurst": 0.012477101300186907,
+   "alpha": 2.2259417051749457,
+   "smooth": false
+  },
+  "distilgpt2/mid": {
+   "hurst": 0.16912699128151804,
+   "alpha": 1.772429724832238,
+   "alpha_threshold": 3.0,
+   "hurst_from_alpha": 0.386214862416119,
+   "smooth": false,
+   "kappa_scale_slope": 0.15664988998133117,
+   "hurst_check": 0.16912699128151804
+  },
+  "distilgpt2/final": {
+   "hurst": 0.15299614158123434,
+   "alpha": 2.0816472670141004,
+   "alpha_threshold": 3.0,
+   "hurst_from_alpha": 0.5408236335070502,
+   "smooth": false,
+   "kappa_scale_slope": 0.14051904028104678,
+   "hurst_check": 0.15299614158123434
+  }
+ },
+ "numbers": {
+  "gpt2/behaviour": {
+   "hurst": 0.042012718344219296,
+   "alpha": 2.260272602388573,
+   "smooth": false
+  },
+  "gpt2/mid": {
+   "hurst": 0.12303522588304193,
+   "alpha": 2.0611774395968263,
+   "alpha_threshold": 3.0,
+   "hurst_from_alpha": 0.5305887197984132,
+   "smooth": false,
+   "kappa_scale_slope": 0.08102250753882288,
+   "hurst_check": 0.12303522588304193
+  },
+  "gpt2/final": {
+   "hurst": 0.0835387419474825,
+   "alpha": 2.251837032564735,
+   "alpha_threshold": 3.0,
+   "hurst_from_alpha": 0.6259185162823675,
+   "smooth": false,
+   "kappa_scale_slope": 0.04152602360326355,
+   "hurst_check": 0.0835387419474825
+  },
+  "distilgpt2/behaviour": {
+   "hurst": 0.0471434555813636,
+   "alpha": 2.459544645211433,
+   "smooth": false
+  },
+  "distilgpt2/mid": {
+   "hurst": 0.12420356744172925,
+   "alpha": 2.084463024228208,
+   "alpha_threshold": 3.0,
+   "hurst_from_alpha": 0.5422315121141039,
+   "smooth": false,
+   "kappa_scale_slope": 0.07706011186036518,
+   "hurst_check": 0.12420356744172925
+  },
+  "distilgpt2/final": {
+   "hurst": 0.13142690031943477,
+   "alpha": 2.2039978581883517,
+   "alpha_threshold": 3.0,
+   "hurst_from_alpha": 0.6019989290941758,
+   "smooth": false,
+   "kappa_scale_slope": 0.08428344473807145,
+   "hurst_check": 0.13142690031943477
+  }
+ }
+}
