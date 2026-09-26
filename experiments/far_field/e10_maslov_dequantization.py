@@ -26,11 +26,17 @@ def analyse(data) -> dict:
     for name in data[TEACHER]:
         t, s = data[TEACHER][name], data[STUDENT][name]
         sw = beta_sweep(t.item_probs(), s.item_probs(), topology=t.topology)
+        both = sw.pair_class == "both_change"
+        abs_log = np.abs(np.log(np.maximum(sw.ratio, 1e-12)))
         out["sweep"][name] = {
             "betas": sw.betas, "loop_length_teacher": sw.loop_length_a, "loop_length_student": sw.loop_length_b,
             "argmax_changes_teacher": sw.limit_a, "argmax_changes_student": sw.limit_b,
-            "median_abs_log_ratio": np.median(np.abs(np.log(np.maximum(sw.ratio, 1e-12))), axis=1),
+            "pair_class": sw.pair_class,
+            "median_abs_log_ratio_all": np.median(abs_log, axis=1),
+            # the tropical prediction r -> 1 applies only where the argmax changes in both models
+            "median_abs_log_ratio_both_change": np.median(abs_log[:, both], axis=1) if both.any() else None,
             "settle_beta": sw.settle_beta,
+            "margin_rate_neither": sw.margin_rate[sw.pair_class == "neither"],
         }
     depths = list(next(iter(data[TEACHER].values())).acts)
     for model, cds in data.items():
@@ -45,9 +51,13 @@ def analyse(data) -> dict:
 def main() -> None:
     res = analyse(load_standard())
     for name, r in res["sweep"].items():
-        m = r["median_abs_log_ratio"]
-        print(f"[sweep] {name:9s} |log r| at beta=0.25/1/64: {m[0]:.3f}/{m[int(np.argmin(np.abs(r['betas'] - 1)))]:.3f}/"
-              f"{m[-1]:.3f}  argmax changes T/S: {r['argmax_changes_teacher']}/{r['argmax_changes_student']}")
+        m = r["median_abs_log_ratio_all"]
+        k1 = int(np.argmin(np.abs(r["betas"] - 1)))
+        classes = {c: int(np.sum(r["pair_class"] == c)) for c in ("both_change", "neither", "mismatch")}
+        bc = r["median_abs_log_ratio_both_change"]
+        bc_txt = f"{bc[k1]:.3f}->{bc[-1]:.3f}" if bc is not None else "n/a"
+        print(f"[sweep] {name:9s} |log r| all pairs at beta=1: {m[k1]:.3f}; both-change pairs beta=1->64: {bc_txt}; "
+              f"pairs {classes}; argmax changes T/S: {r['argmax_changes_teacher']}/{r['argmax_changes_student']}")
     for key, r in res["temperature"].items():
         print(f"[temperature] {key:18s} beta_hat={r['beta_hat']:.2f} r2_max={np.nanmax(r['r2']):.3f}")
     save("e10_maslov_dequantization", res)

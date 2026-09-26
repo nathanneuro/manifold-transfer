@@ -49,18 +49,27 @@ def _lags(n: int, circular: bool) -> np.ndarray:
     return np.minimum(lag, n - lag) if circular else lag
 
 
-def _fit_saturating(lag: np.ndarray, d: np.ndarray) -> tuple[float, float, float]:
-    """Least squares ``d ≈ a (1 - exp(-lag/ell))`` over a log grid of ``ell``
-    (``a`` in closed form). Returns ``(a, ell, rss)``."""
-    best = (0.0, 0.0, np.inf)
-    for ell in np.geomspace(0.05, 1e4, 400):
-        basis = 1.0 - np.exp(-lag / ell)
-        bb = float(basis @ basis)
-        a = float(basis @ d / bb) if bb > 0 else 0.0
-        rss = float(np.sum((d - a * basis) ** 2))
-        if rss < best[2]:
-            best = (a, float(ell), rss)
-    return best
+_ELLS = np.geomspace(0.05, 1e4, 400)
+_BASES: dict[tuple[int, bool], np.ndarray] = {}
+
+
+def _basis(n: int, circular: bool) -> np.ndarray:
+    """``1 - exp(-lag/ell)`` for every ell on the grid, ``(n_ell, n_pairs)``;
+    memoised, since it depends only on ``n`` and the lag type."""
+    key = (n, circular)
+    if key not in _BASES:
+        _BASES[key] = 1.0 - np.exp(-_lags(n, circular)[None, :] / _ELLS[:, None])
+    return _BASES[key]
+
+
+def _fit_saturating(basis: np.ndarray, d: np.ndarray) -> tuple[float, float, float]:
+    """Least squares ``d ≈ a (1 - exp(-lag/ell))`` over the log grid of ``ell``
+    (``a`` in closed form, all ells at once). Returns ``(a, ell, rss)``."""
+    bd = basis @ d
+    bb = np.einsum("ij,ij->i", basis, basis)
+    rss = float(d @ d) - np.where(bb > 0, bd**2 / np.maximum(bb, 1e-300), 0.0)
+    k = int(np.argmin(rss))
+    return float(bd[k] / bb[k]) if bb[k] > 0 else 0.0, float(_ELLS[k]), float(max(rss[k], 0.0))
 
 
 @dataclass
@@ -81,8 +90,8 @@ def lag_model_fit(dist: Any) -> LagModelFit:
         raise ValueError("dist must be a square matrix over >= 4 items")
     i, j = np.triu_indices(n, k=1)
     d = d_mat[i, j]
-    _, ell_c, rss_c = _fit_saturating(_lags(n, True), d)
-    _, ell_l, rss_l = _fit_saturating(_lags(n, False), d)
+    _, ell_c, rss_c = _fit_saturating(_basis(n, True), d)
+    _, ell_l, rss_l = _fit_saturating(_basis(n, False), d)
     tiny = 1e-12 * float(d @ d) + 1e-300
     # centred Gram from distances (classical MDS)
     h = np.eye(n) - 1.0 / n

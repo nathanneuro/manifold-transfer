@@ -1,0 +1,840 @@
+{
+ "models": [
+  "gpt2",
+  "distilgpt2"
+ ],
+ "depths": {
+  "mid": 0.5,
+  "final": 1.0
+ },
+ "results": {
+  "gpt2/mid/digits": {
+   "topology_named": "interval",
+   "order_p": 0.0001,
+   "closure_ratio": 1.9678912313030332,
+   "log_ratio": -0.13643959540706863,
+   "log_ratio_ci": [
+    -0.1414841010492699,
+    -0.13144261399478668
+   ],
+   "frac_loop_symmetry": 0.0,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 1.0,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.6958991407983062,
+   "seam_lag_model": "one",
+   "seam_fractions": {
+    "zero": 0.0,
+    "one": 1.0,
+    "two": 0.0,
+    "three": 0.0,
+    "four": 0.0,
+    "five": 0.0,
+    "six": 0.0,
+    "seven": 0.0,
+    "eight": 0.0,
+    "nine": 0.0
+   },
+   "seam_magnitude": "zero"
+  },
+  "gpt2/mid/teens": {
+   "topology_named": "interval",
+   "order_p": 0.00055,
+   "closure_ratio": 1.7480090860366924,
+   "log_ratio": -0.16566147387738703,
+   "log_ratio_ci": [
+    -0.17380718742860118,
+    -0.15812791212876443
+   ],
+   "frac_loop_symmetry": 0.0,
+   "verdict": "line",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 0.0,
+    "line": 1.0
+   },
+   "eigen_pairing": 0.6566419179826325,
+   "seam_lag_model": "eleven",
+   "seam_fractions": {
+    "eleven": 1.0,
+    "twelve": 0.0,
+    "thirteen": 0.0,
+    "fourteen": 0.0,
+    "fifteen": 0.0,
+    "sixteen": 0.0,
+    "seventeen": 0.0,
+    "eighteen": 0.0,
+    "nineteen": 0.0,
+    "twenty": 0.0
+   },
+   "seam_magnitude": "twenty"
+  },
+  "gpt2/mid/ranks": {
+   "topology_named": "interval",
+   "order_p": 0.0001,
+   "closure_ratio": 3.7961608476500883,
+   "log_ratio": -0.3861710973144136,
+   "log_ratio_ci": [
+    -0.39192602834684737,
+    -0.3093849734029403
+   ],
+   "frac_loop_symmetry": 0.0,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 0.645,
+    "line": 0.355
+   },
+   "eigen_pairing": 0.041012586545353474,
+   "seam_lag_model": "first",
+   "seam_fractions": {
+    "first": 0.78,
+    "second": 0.0,
+    "third": 0.0,
+    "fourth": 0.0,
+    "fifth": 0.0,
+    "sixth": 0.22,
+    "seventh": 0.0,
+    "eighth": 0.0,
+    "ninth": 0.0,
+    "tenth": 0.0
+   },
+   "seam_magnitude": "first"
+  },
+  "gpt2/mid/letters": {
+   "topology_named": "interval",
+   "order_p": 5e-05,
+   "closure_ratio": 1.1189215072890628,
+   "log_ratio": -0.004036873020203264,
+   "log_ratio_ci": [
+    -0.004339600799929095,
+    -0.0036829315272496384
+   ],
+   "frac_loop_symmetry": 0.0,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 1.0,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.7591415340978962,
+   "seam_lag_model": "Q",
+   "seam_fractions": {
+    "A": 0.0,
+    "B": 0.0,
+    "C": 0.0,
+    "D": 0.0,
+    "E": 0.0,
+    "F": 0.0,
+    "G": 0.0,
+    "H": 0.0,
+    "I": 0.0,
+    "J": 0.0,
+    "K": 0.0,
+    "L": 0.0,
+    "M": 0.0,
+    "N": 0.0,
+    "O": 0.0,
+    "P": 0.0,
+    "Q": 1.0,
+    "R": 0.0,
+    "S": 0.0,
+    "T": 0.0,
+    "U": 0.0,
+    "V": 0.0,
+    "W": 0.0,
+    "X": 0.0,
+    "Y": 0.0,
+    "Z": 0.0
+   },
+   "seam_magnitude": "Q"
+  },
+  "gpt2/mid/weekdays": {
+   "topology_named": "circle",
+   "order_p": 0.002777777777777778,
+   "closure_ratio": 1.2618101312910825,
+   "log_ratio": -0.05217010358394133,
+   "log_ratio_ci": [
+    -0.1080779833171923,
+    -0.002883822007658772
+   ],
+   "frac_loop_symmetry": 0.015,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 1.0,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.7079567629645145,
+   "seam_lag_model": "Monday",
+   "seam_fractions": {
+    "Monday": 1.0,
+    "Tuesday": 0.0,
+    "Wednesday": 0.0,
+    "Thursday": 0.0,
+    "Friday": 0.0,
+    "Saturday": 0.0,
+    "Sunday": 0.0
+   },
+   "seam_magnitude": "Sunday"
+  },
+  "gpt2/mid/months": {
+   "topology_named": "circle",
+   "order_p": 5e-05,
+   "closure_ratio": 1.0854685669140014,
+   "log_ratio": 0.03858835764789405,
+   "log_ratio_ci": [
+    0.03461913332971869,
+    0.04314520601527382
+   ],
+   "frac_loop_symmetry": 1.0,
+   "verdict": "loop",
+   "verdict_fractions": {
+    "loop": 1.0,
+    "horseshoe": 0.0,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.7000258951990896,
+   "seam_lag_model": "May",
+   "seam_fractions": {
+    "January": 0.0,
+    "February": 0.0,
+    "March": 0.0,
+    "April": 0.0,
+    "May": 1.0,
+    "June": 0.0,
+    "July": 0.0,
+    "August": 0.0,
+    "September": 0.0,
+    "October": 0.0,
+    "November": 0.0,
+    "December": 0.0
+   },
+   "seam_magnitude": "May"
+  },
+  "gpt2/final/digits": {
+   "topology_named": "interval",
+   "order_p": 0.01375,
+   "closure_ratio": 1.7866626401367547,
+   "log_ratio": -0.06666056576198927,
+   "log_ratio_ci": [
+    -0.0862021705297466,
+    -0.04694152186765122
+   ],
+   "frac_loop_symmetry": 0.0,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.01,
+    "horseshoe": 0.99,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.15805020872078987,
+   "seam_lag_model": "one",
+   "seam_fractions": {
+    "zero": 0.0,
+    "one": 1.0,
+    "two": 0.0,
+    "three": 0.0,
+    "four": 0.0,
+    "five": 0.0,
+    "six": 0.0,
+    "seven": 0.0,
+    "eight": 0.0,
+    "nine": 0.0
+   },
+   "seam_magnitude": "zero"
+  },
+  "gpt2/final/teens": {
+   "topology_named": "interval",
+   "order_p": 0.0003,
+   "closure_ratio": 3.7045962829675565,
+   "log_ratio": -0.1391318230182905,
+   "log_ratio_ci": [
+    -0.19507666641150512,
+    -0.10108605291874337
+   ],
+   "frac_loop_symmetry": 0.0,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 0.995,
+    "line": 0.005
+   },
+   "eigen_pairing": 0.08028146057634218,
+   "seam_lag_model": "eleven",
+   "seam_fractions": {
+    "eleven": 1.0,
+    "twelve": 0.0,
+    "thirteen": 0.0,
+    "fourteen": 0.0,
+    "fifteen": 0.0,
+    "sixteen": 0.0,
+    "seventeen": 0.0,
+    "eighteen": 0.0,
+    "nineteen": 0.0,
+    "twenty": 0.0
+   },
+   "seam_magnitude": "twenty"
+  },
+  "gpt2/final/ranks": {
+   "topology_named": "interval",
+   "order_p": 0.0001,
+   "closure_ratio": 2.3969832610177026,
+   "log_ratio": -0.28510803994064565,
+   "log_ratio_ci": [
+    -0.638017193836309,
+    -0.13571880497126246
+   ],
+   "frac_loop_symmetry": 0.0,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 1.0,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.1675805958128761,
+   "seam_lag_model": "second",
+   "seam_fractions": {
+    "first": 0.4,
+    "second": 0.6,
+    "third": 0.0,
+    "fourth": 0.0,
+    "fifth": 0.0,
+    "sixth": 0.0,
+    "seventh": 0.0,
+    "eighth": 0.0,
+    "ninth": 0.0,
+    "tenth": 0.0
+   },
+   "seam_magnitude": "tenth"
+  },
+  "gpt2/final/letters": {
+   "topology_named": "interval",
+   "order_p": 0.7251,
+   "closure_ratio": 0.8215292551846626,
+   "log_ratio": 4.381828233580968e-12,
+   "log_ratio_ci": [
+    1.901756530029854e-12,
+    6.853428935448099e-12
+   ],
+   "frac_loop_symmetry": 1.0,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 1.0,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.2175923942254394,
+   "seam_lag_model": "J",
+   "seam_fractions": {
+    "A": 0.0,
+    "B": 0.0,
+    "C": 0.0,
+    "D": 0.0,
+    "E": 0.0,
+    "F": 0.0,
+    "G": 0.0,
+    "H": 0.0,
+    "I": 0.0,
+    "J": 1.0,
+    "K": 0.0,
+    "L": 0.0,
+    "M": 0.0,
+    "N": 0.0,
+    "O": 0.0,
+    "P": 0.0,
+    "Q": 0.0,
+    "R": 0.0,
+    "S": 0.0,
+    "T": 0.0,
+    "U": 0.0,
+    "V": 0.0,
+    "W": 0.0,
+    "X": 0.0,
+    "Y": 0.0,
+    "Z": 0.0
+   },
+   "seam_magnitude": "I"
+  },
+  "gpt2/final/weekdays": {
+   "topology_named": "circle",
+   "order_p": 0.016666666666666666,
+   "closure_ratio": 1.4360250868194302,
+   "log_ratio": -0.1596166363154105,
+   "log_ratio_ci": [
+    -0.31019591863981766,
+    -0.07273547422723618
+   ],
+   "frac_loop_symmetry": 0.0,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.155,
+    "horseshoe": 0.845,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.4244248512127883,
+   "seam_lag_model": "Sunday",
+   "seam_fractions": {
+    "Monday": 0.185,
+    "Tuesday": 0.0,
+    "Wednesday": 0.0,
+    "Thursday": 0.0,
+    "Friday": 0.0,
+    "Saturday": 0.0,
+    "Sunday": 0.815
+   },
+   "seam_magnitude": "Saturday"
+  },
+  "gpt2/final/months": {
+   "topology_named": "circle",
+   "order_p": 0.09715,
+   "closure_ratio": 0.4776943637042834,
+   "log_ratio": 0.028644211046055804,
+   "log_ratio_ci": [
+    0.009787579121263936,
+    0.05157145197321244
+   ],
+   "frac_loop_symmetry": 1.0,
+   "verdict": "loop",
+   "verdict_fractions": {
+    "loop": 0.99,
+    "horseshoe": 0.01,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.07343951284221858,
+   "seam_lag_model": "March",
+   "seam_fractions": {
+    "January": 0.0,
+    "February": 0.0,
+    "March": 0.84,
+    "April": 0.0,
+    "May": 0.15,
+    "June": 0.0,
+    "July": 0.0,
+    "August": 0.0,
+    "September": 0.01,
+    "October": 0.0,
+    "November": 0.0,
+    "December": 0.0
+   },
+   "seam_magnitude": "May"
+  },
+  "distilgpt2/mid/digits": {
+   "topology_named": "interval",
+   "order_p": 0.0001,
+   "closure_ratio": 2.119676690784107,
+   "log_ratio": -0.13575832209946714,
+   "log_ratio_ci": [
+    -0.13948561603410167,
+    -0.13156995453065534
+   ],
+   "frac_loop_symmetry": 0.0,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 1.0,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.6244193141124477,
+   "seam_lag_model": "one",
+   "seam_fractions": {
+    "zero": 0.0,
+    "one": 1.0,
+    "two": 0.0,
+    "three": 0.0,
+    "four": 0.0,
+    "five": 0.0,
+    "six": 0.0,
+    "seven": 0.0,
+    "eight": 0.0,
+    "nine": 0.0
+   },
+   "seam_magnitude": "zero"
+  },
+  "distilgpt2/mid/teens": {
+   "topology_named": "interval",
+   "order_p": 0.0005,
+   "closure_ratio": 1.926317764616781,
+   "log_ratio": -0.19551385516863481,
+   "log_ratio_ci": [
+    -0.20508498453652924,
+    -0.18849283388978302
+   ],
+   "frac_loop_symmetry": 0.0,
+   "verdict": "line",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 0.0,
+    "line": 1.0
+   },
+   "eigen_pairing": 0.5174033935167198,
+   "seam_lag_model": "eleven",
+   "seam_fractions": {
+    "eleven": 1.0,
+    "twelve": 0.0,
+    "thirteen": 0.0,
+    "fourteen": 0.0,
+    "fifteen": 0.0,
+    "sixteen": 0.0,
+    "seventeen": 0.0,
+    "eighteen": 0.0,
+    "nineteen": 0.0,
+    "twenty": 0.0
+   },
+   "seam_magnitude": "twenty"
+  },
+  "distilgpt2/mid/ranks": {
+   "topology_named": "interval",
+   "order_p": 0.0001,
+   "closure_ratio": 3.305041858273615,
+   "log_ratio": -0.4260117402473299,
+   "log_ratio_ci": [
+    -0.43335296573708093,
+    -0.31163058301274865
+   ],
+   "frac_loop_symmetry": 0.0,
+   "verdict": "line",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 0.315,
+    "line": 0.685
+   },
+   "eigen_pairing": 0.07930838557959594,
+   "seam_lag_model": "first",
+   "seam_fractions": {
+    "first": 0.765,
+    "second": 0.0,
+    "third": 0.0,
+    "fourth": 0.0,
+    "fifth": 0.0,
+    "sixth": 0.235,
+    "seventh": 0.0,
+    "eighth": 0.0,
+    "ninth": 0.0,
+    "tenth": 0.0
+   },
+   "seam_magnitude": "first"
+  },
+  "distilgpt2/mid/letters": {
+   "topology_named": "interval",
+   "order_p": 5e-05,
+   "closure_ratio": 1.1246954002443783,
+   "log_ratio": -0.00426934087337134,
+   "log_ratio_ci": [
+    -0.004665000449688925,
+    -0.00393893345719362
+   ],
+   "frac_loop_symmetry": 0.0,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 1.0,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.7848030353554414,
+   "seam_lag_model": "Q",
+   "seam_fractions": {
+    "A": 0.0,
+    "B": 0.0,
+    "C": 0.0,
+    "D": 0.0,
+    "E": 0.0,
+    "F": 0.0,
+    "G": 0.0,
+    "H": 0.0,
+    "I": 0.0,
+    "J": 0.035,
+    "K": 0.0,
+    "L": 0.0,
+    "M": 0.0,
+    "N": 0.0,
+    "O": 0.0,
+    "P": 0.0,
+    "Q": 0.96,
+    "R": 0.0,
+    "S": 0.0,
+    "T": 0.0,
+    "U": 0.005,
+    "V": 0.0,
+    "W": 0.0,
+    "X": 0.0,
+    "Y": 0.0,
+    "Z": 0.0
+   },
+   "seam_magnitude": "Q"
+  },
+  "distilgpt2/mid/weekdays": {
+   "topology_named": "circle",
+   "order_p": 0.002777777777777778,
+   "closure_ratio": 1.2453731969006971,
+   "log_ratio": 0.05038203116270898,
+   "log_ratio_ci": [
+    -0.021981962686618978,
+    0.12343055078239795
+   ],
+   "frac_loop_symmetry": 0.88,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 1.0,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.7478728559216657,
+   "seam_lag_model": "Monday",
+   "seam_fractions": {
+    "Monday": 1.0,
+    "Tuesday": 0.0,
+    "Wednesday": 0.0,
+    "Thursday": 0.0,
+    "Friday": 0.0,
+    "Saturday": 0.0,
+    "Sunday": 0.0
+   },
+   "seam_magnitude": "Sunday"
+  },
+  "distilgpt2/mid/months": {
+   "topology_named": "circle",
+   "order_p": 5e-05,
+   "closure_ratio": 1.1089408710623236,
+   "log_ratio": 0.039249534111492144,
+   "log_ratio_ci": [
+    0.03479767521377699,
+    0.0447433269550468
+   ],
+   "frac_loop_symmetry": 1.0,
+   "verdict": "loop",
+   "verdict_fractions": {
+    "loop": 1.0,
+    "horseshoe": 0.0,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.7615752654794214,
+   "seam_lag_model": "May",
+   "seam_fractions": {
+    "January": 0.0,
+    "February": 0.0,
+    "March": 0.0,
+    "April": 0.0,
+    "May": 1.0,
+    "June": 0.0,
+    "July": 0.0,
+    "August": 0.0,
+    "September": 0.0,
+    "October": 0.0,
+    "November": 0.0,
+    "December": 0.0
+   },
+   "seam_magnitude": "May"
+  },
+  "distilgpt2/final/digits": {
+   "topology_named": "interval",
+   "order_p": 0.00025,
+   "closure_ratio": 1.8857921958340538,
+   "log_ratio": -0.06910066193698193,
+   "log_ratio_ci": [
+    -0.08891998521473522,
+    -0.05158907981524621
+   ],
+   "frac_loop_symmetry": 0.0,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 1.0,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.5427626359235478,
+   "seam_lag_model": "one",
+   "seam_fractions": {
+    "zero": 0.0,
+    "one": 1.0,
+    "two": 0.0,
+    "three": 0.0,
+    "four": 0.0,
+    "five": 0.0,
+    "six": 0.0,
+    "seven": 0.0,
+    "eight": 0.0,
+    "nine": 0.0
+   },
+   "seam_magnitude": "one"
+  },
+  "distilgpt2/final/teens": {
+   "topology_named": "interval",
+   "order_p": 0.00645,
+   "closure_ratio": 4.436290755759757,
+   "log_ratio": -0.19217016489473418,
+   "log_ratio_ci": [
+    -0.2528246932393849,
+    -0.14000494705952427
+   ],
+   "frac_loop_symmetry": 0.0,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 0.955,
+    "line": 0.045
+   },
+   "eigen_pairing": 0.03599992071118044,
+   "seam_lag_model": "eleven",
+   "seam_fractions": {
+    "eleven": 1.0,
+    "twelve": 0.0,
+    "thirteen": 0.0,
+    "fourteen": 0.0,
+    "fifteen": 0.0,
+    "sixteen": 0.0,
+    "seventeen": 0.0,
+    "eighteen": 0.0,
+    "nineteen": 0.0,
+    "twenty": 0.0
+   },
+   "seam_magnitude": "twenty"
+  },
+  "distilgpt2/final/ranks": {
+   "topology_named": "interval",
+   "order_p": 0.0004,
+   "closure_ratio": 2.8340252386131892,
+   "log_ratio": -0.27137126194520095,
+   "log_ratio_ci": [
+    -0.5677408769610048,
+    -0.16835710203673077
+   ],
+   "frac_loop_symmetry": 0.0,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 0.99,
+    "line": 0.01
+   },
+   "eigen_pairing": 0.5159638643700782,
+   "seam_lag_model": "first",
+   "seam_fractions": {
+    "first": 1.0,
+    "second": 0.0,
+    "third": 0.0,
+    "fourth": 0.0,
+    "fifth": 0.0,
+    "sixth": 0.0,
+    "seventh": 0.0,
+    "eighth": 0.0,
+    "ninth": 0.0,
+    "tenth": 0.0
+   },
+   "seam_magnitude": "tenth"
+  },
+  "distilgpt2/final/letters": {
+   "topology_named": "interval",
+   "order_p": 0.351,
+   "closure_ratio": 0.8393736931424662,
+   "log_ratio": 3.660454418067515e-05,
+   "log_ratio_ci": [
+    1.4716225279882527e-06,
+    7.21673919648605e-05
+   ],
+   "frac_loop_symmetry": 1.0,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.0,
+    "horseshoe": 1.0,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.46080665051127145,
+   "seam_lag_model": "J",
+   "seam_fractions": {
+    "A": 0.0,
+    "B": 0.0,
+    "C": 0.0,
+    "D": 0.0,
+    "E": 0.0,
+    "F": 0.0,
+    "G": 0.0,
+    "H": 0.0,
+    "I": 0.0,
+    "J": 1.0,
+    "K": 0.0,
+    "L": 0.0,
+    "M": 0.0,
+    "N": 0.0,
+    "O": 0.0,
+    "P": 0.0,
+    "Q": 0.0,
+    "R": 0.0,
+    "S": 0.0,
+    "T": 0.0,
+    "U": 0.0,
+    "V": 0.0,
+    "W": 0.0,
+    "X": 0.0,
+    "Y": 0.0,
+    "Z": 0.0
+   },
+   "seam_magnitude": "I"
+  },
+  "distilgpt2/final/weekdays": {
+   "topology_named": "circle",
+   "order_p": 0.002777777777777778,
+   "closure_ratio": 1.4704661666012246,
+   "log_ratio": -0.26995437582378534,
+   "log_ratio_ci": [
+    -0.372603132488995,
+    -0.1672011863917101
+   ],
+   "frac_loop_symmetry": 0.0,
+   "verdict": "horseshoe",
+   "verdict_fractions": {
+    "loop": 0.005,
+    "horseshoe": 0.995,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.39275727999075183,
+   "seam_lag_model": "Monday",
+   "seam_fractions": {
+    "Monday": 0.845,
+    "Tuesday": 0.155,
+    "Wednesday": 0.0,
+    "Thursday": 0.0,
+    "Friday": 0.0,
+    "Saturday": 0.0,
+    "Sunday": 0.0
+   },
+   "seam_magnitude": "Sunday"
+  },
+  "distilgpt2/final/months": {
+   "topology_named": "circle",
+   "order_p": 0.0657,
+   "closure_ratio": 0.5617911902437607,
+   "log_ratio": 0.013193449281040577,
+   "log_ratio_ci": [
+    0.007833380958384524,
+    0.020356400276290727
+   ],
+   "frac_loop_symmetry": 1.0,
+   "verdict": "loop",
+   "verdict_fractions": {
+    "loop": 1.0,
+    "horseshoe": 0.0,
+    "line": 0.0
+   },
+   "eigen_pairing": 0.12619758410206852,
+   "seam_lag_model": "May",
+   "seam_fractions": {
+    "January": 0.0,
+    "February": 0.0,
+    "March": 0.08,
+    "April": 0.0,
+    "May": 0.865,
+    "June": 0.055,
+    "July": 0.0,
+    "August": 0.0,
+    "September": 0.0,
+    "October": 0.0,
+    "November": 0.0,
+    "December": 0.0
+   },
+   "seam_magnitude": "May"
+  }
+ }
+}

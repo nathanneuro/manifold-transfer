@@ -60,7 +60,7 @@ def argmax_changes(probs: Any, topology: str) -> int:
     return int(np.sum(top[i] != top[j]))
 
 
-DEFAULT_BETAS = np.geomspace(0.25, 64, 25)
+DEFAULT_BETAS = np.geomspace(0.02, 64, 36)
 
 
 @dataclass
@@ -72,6 +72,8 @@ class BetaSweep:
     limit_a: int  # argmax changes (L(∞)/π)
     limit_b: int
     settle_beta: np.ndarray  # per pair: smallest β from which the ratio stays in [lo, hi]; nan if never
+    pair_class: np.ndarray  # per pair: "both_change" | "neither" | "mismatch" (argmax change in one model only)
+    margin_rate: np.ndarray  # per pair: d log r / dβ over the top half of the β grid
 
 
 def beta_sweep(
@@ -102,6 +104,20 @@ def beta_sweep(
             if inside[k:, p].all():
                 settle[p] = betas[k]
                 break
+    # The tropical limit only predicts r -> 1 for pairs whose argmax changes in
+    # both models (pi / pi). Where neither changes, both distances vanish like
+    # exp(-beta * margin) and log r grows linearly in beta at the rate of the
+    # two models' top-two log-probability margin difference: a real quantity,
+    # but not "settling". Where only one changes, the ratio goes to 0 or inf.
+    ta = np.argmax(np.asarray(probs_a), axis=-1)
+    tb = np.argmax(np.asarray(probs_b), axis=-1)
+    i, j = _adjacent_pairs(ta.size, topology)
+    ca, cb = ta[i] != ta[j], tb[i] != tb[j]
+    pair_class = np.where(ca & cb, "both_change", np.where(~ca & ~cb, "neither", "mismatch"))
+    top = betas >= np.median(betas)
+    logr = np.log(np.maximum(ratio, 1e-300))
+    margin_rate = np.array([np.polyfit(betas[top], logr[top, p], 1)[0] if top.sum() >= 2 else np.nan
+                            for p in range(ratio.shape[1])])
     return BetaSweep(
         betas,
         np.array(la),
@@ -110,6 +126,8 @@ def beta_sweep(
         argmax_changes(probs_a, topology),
         argmax_changes(probs_b, topology),
         settle,
+        pair_class,
+        margin_rate,
     )
 
 
