@@ -66,3 +66,12 @@ def test_bootstrap_runs():
     rows = np.repeat(_loop(), t, axis=0) + rng.normal(scale=0.05, size=(n * t, 2))
     res = closure_bootstrap(rows, n, t, n_boot=40)
     assert res.verdict == "loop" and res.frac_loop_symmetry > 0.9
+
+
+def test_magnitude_uniform_on_loop_and_peaks_at_arc_ends():
+    from manifold_transfer.closure import magnitude_profile
+
+    loop = magnitude_profile(distance_matrix(_loop()))
+    assert np.allclose(loop.boundary_index, 1.0, atol=1e-8)
+    arc = magnitude_profile(distance_matrix(_horseshoe()))
+    assert arc.seam_item in (0, 6)

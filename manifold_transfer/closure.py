@@ -198,3 +198,37 @@ def closure_bootstrap(
         ss.best_seam,
         seams / max(seams.sum(), 1),
     )
+
+
+# ── a second seam detector: magnitude weighting ─────────────────────────────
+
+
+@dataclass
+class MagnitudeProfile:
+    scales: np.ndarray
+    magnitude: np.ndarray  # |tX| = sum of the weighting, per scale
+    boundary_index: np.ndarray  # (n_scales, n_items): w_i / mean(w); exactly 1 on a homogeneous loop
+    seam_item: int  # the item with the most excess weight, pooled over scales
+
+
+def magnitude_profile(dist: Any, scales: Any | None = None) -> MagnitudeProfile:
+    """Leinster's magnitude weighting ``w = Z_t^{-1} 1`` with ``Z_t = exp(-t D)``
+    (Leinster, *The magnitude of metric spaces*, Doc. Math. 18, 2013,
+    arXiv:1012.5857; boundary detection: Bunch et al., arXiv:2106.00827).
+
+    On any homogeneous space — a circulant distance matrix, i.e. an even loop —
+    the weighting is exactly uniform; an arc piles weight onto its two ends. The
+    item with the most excess weight across scales is where the model cuts the
+    loop, found from the whole matrix rather than from one closing edge."""
+    d = np.asarray(dist, dtype=np.float64)
+    n = d.shape[0]
+    off = d[np.triu_indices(n, 1)]
+    if scales is None:
+        scales = np.geomspace(0.3, 30, 20) / np.median(off)
+    scales = np.asarray(scales, dtype=np.float64)
+    mags, bidx = np.empty(scales.size), np.empty((scales.size, n))
+    for k, t in enumerate(scales):
+        w = np.linalg.solve(np.exp(-t * d), np.ones(n))
+        mags[k] = w.sum()
+        bidx[k] = w / w.mean()
+    return MagnitudeProfile(scales, mags, bidx, int(np.argmax((bidx - 1).clip(min=0).sum(axis=0))))
